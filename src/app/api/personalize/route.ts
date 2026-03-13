@@ -2,13 +2,13 @@ import { NextResponse } from 'next/server';
 import { LeadService } from '@/modules/leads/service';
 import { generatePersonalizedMessage } from '@/modules/ghostwriter/personalizer';
 import { z } from 'zod';
-import { withErrorHandler } from '@/lib/api-wrapper';
+import { withErrorHandler, withAuth } from '@/lib/api-wrapper';
 
 const PersonalizeRequestSchema = z.object({
     leadId: z.string().min(1, "leadId is required"),
 });
 
-export const POST = withErrorHandler(async (request: Request) => {
+export const POST = withErrorHandler(withAuth(async (request: Request) => {
     const body = await request.json();
     const { leadId } = PersonalizeRequestSchema.parse(body);
 
@@ -31,6 +31,6 @@ export const POST = withErrorHandler(async (request: Request) => {
         data: updatedLead,
         message: "AI message generated successfully"
     });
-});
+}));
 
 

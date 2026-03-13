@@ -4,6 +4,7 @@ const envSchema = z.object({
   // Infrastructure
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.string().url(),
+  API_SECRET_KEY: z.string().min(8),
 
   // Apify
   APIFY_API_TOKEN: z.string().min(1),

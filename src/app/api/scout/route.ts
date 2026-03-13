@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { scoutMorocco } from '@/modules/scout/apify.service';
 import { env } from '@/config/env';
 import { z } from 'zod';
-import { withErrorHandler } from '@/lib/api-wrapper';
+import { withErrorHandler, withAuth } from '@/lib/api-wrapper';
 
 const ScoutRequestSchema = z.object({
     city: z.string().optional(),
@@ -10,7 +10,7 @@ const ScoutRequestSchema = z.object({
     limit: z.number().min(1).max(500).optional(),
 });
 
-export const POST = withErrorHandler(async (request: Request) => {
+export const POST = withErrorHandler(withAuth(async (request: Request) => {
     const body = await request.json();
     const validated = ScoutRequestSchema.parse(body);
     
@@ -25,4 +25,4 @@ export const POST = withErrorHandler(async (request: Request) => {
         count: leads.length,
         message: `Scraped ${leads.length} leads in ${city}`
     });
-});
+}));

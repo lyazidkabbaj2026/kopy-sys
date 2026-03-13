@@ -1,8 +1,21 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { AppError } from "./errors";
+import { env } from "@/config/env";
 
 export type RouteHandler = (request: Request, context?: unknown) => Promise<Response>;
+
+export function withAuth(handler: RouteHandler): RouteHandler {
+  return async (request: Request, context?: unknown) => {
+    const apiKey = request.headers.get("x-api-key");
+
+    if (!apiKey || apiKey !== env.API_SECRET_KEY) {
+      throw new AppError("Unauthorized", "UNAUTHORIZED", 401);
+    }
+
+    return await handler(request, context);
+  };
+}
 
 export function withErrorHandler(handler: RouteHandler) {
   return async (request: Request, context?: unknown) => {

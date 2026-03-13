@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { LeadService } from '@/modules/leads/service';
 import { analyzeWebsite } from '@/modules/audit/analyzer';
-import { withErrorHandler } from '@/lib/api-wrapper';
+import { withErrorHandler, withAuth } from '@/lib/api-wrapper';
 import { z } from 'zod';
 
 import { AppError } from '@/lib/errors';
@@ -10,7 +10,7 @@ const AuditRequestSchema = z.object({
     leadId: z.string().min(1, "leadId is required"),
 });
 
-export const POST = withErrorHandler(async (request: Request) => {
+export const POST = withErrorHandler(withAuth(async (request: Request) => {
     const body = await request.json();
     const { leadId } = AuditRequestSchema.parse(body);
 
@@ -32,5 +32,5 @@ export const POST = withErrorHandler(async (request: Request) => {
         data: updatedLead,
         message: `Audit completed with score: ${audit.score}`
     });
-});
+}));
 

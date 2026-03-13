@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { LeadService } from '@/modules/leads/service';
-import { withErrorHandler } from '@/lib/api-wrapper';
+import { withErrorHandler, withAuth } from '@/lib/api-wrapper';
 
 import { z } from 'zod';
 
@@ -8,7 +8,7 @@ const RouteContextSchema = z.object({
     params: z.promise(z.object({ id: z.string() })) 
 });
 
-export const DELETE = withErrorHandler(async (
+export const DELETE = withErrorHandler(withAuth(async (
     _request: Request,
     context: unknown
 ) => {
@@ -18,5 +18,5 @@ export const DELETE = withErrorHandler(async (
     await LeadService.delete(id);
 
     return NextResponse.json({ success: true, message: "Lead deleted successfully" });
-});
+}));
 

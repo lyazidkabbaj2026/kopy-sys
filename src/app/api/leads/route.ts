@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { LeadService } from '@/modules/leads/service';
-import { withErrorHandler } from '@/lib/api-wrapper';
+import { withErrorHandler, withAuth } from '@/lib/api-wrapper';
 import { z } from 'zod';
 
 const PaginationSchema = z.object({
@@ -8,12 +8,12 @@ const PaginationSchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(50),
 });
 
-export const GET = withErrorHandler(async (request: Request) => {
+export const GET = withErrorHandler(withAuth(async (request: Request) => {
   const { searchParams } = new URL(request.url);
   
   const validated = PaginationSchema.parse({
-    page: searchParams.get('page'),
-    limit: searchParams.get('limit'),
+    page: searchParams.get('page') || undefined,
+    limit: searchParams.get('limit') || undefined,
   });
 
   const result = await LeadService.getLeads(validated.page, validated.limit);
@@ -22,4 +22,4 @@ export const GET = withErrorHandler(async (request: Request) => {
     success: true,
     ...result
   });
-});
+}));
