@@ -32,16 +32,21 @@ export default function LeadsTable({ leads, totalCount, currentPage, totalPages 
     const searchParams = useSearchParams();
     const [isPending, startTransition] = useTransition();
 
-    // 1. CRM State Management (URL-Driven Sync)
+    // 1. CRM State Management (URL-Driven & Derived)
     const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
-    const [statusFilter, setStatusFilter] = useState<string>(searchParams.get("status") || "all");
-    const [ratingFilter, setRatingFilter] = useState<string>(searchParams.get("rating") || "all");
-    const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get("category") || "all");
-    const [sortConfig, setSortConfig] = useState<{ key: keyof Lead, direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
+    const statusFilter = searchParams.get("status") || "all";
+    const ratingFilter = searchParams.get("rating") || "all";
+    const categoryFilter = searchParams.get("category") || "all";
 
     // Helper to update URL params
     const updateQuery = (updates: Record<string, string | null>) => {
         const params = new URLSearchParams(searchParams.toString());
+        
+        // Auto-reset pagination if changing filters/sort
+        if (!updates.page) {
+            params.set("page", "1");
+        }
+
         Object.entries(updates).forEach(([key, value]) => {
             if (value === null || value === "all" || value === "") {
                 params.delete(key);
@@ -53,13 +58,6 @@ export default function LeadsTable({ leads, totalCount, currentPage, totalPages 
         router.push(`${pathname}${query ? `?${query}` : ""}`, { scroll: false });
     };
 
-    // Keep local state in sync with URL if it changes externally
-    useEffect(() => {
-        setSearchTerm(searchParams.get("q") || "");
-        setStatusFilter(searchParams.get("status") || "all");
-        setRatingFilter(searchParams.get("rating") || "all");
-        setCategoryFilter(searchParams.get("category") || "all");
-    }, [searchParams]);
 
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [auditingId, setAuditingId] = useState<string | null>(null);
@@ -220,9 +218,6 @@ export default function LeadsTable({ leads, totalCount, currentPage, totalPages 
 
     const resetFilters = () => {
         setSearchTerm("");
-        setStatusFilter("all");
-        setRatingFilter("all");
-        setCategoryFilter("all");
         router.push(pathname, { scroll: false });
     };
 
@@ -235,13 +230,14 @@ export default function LeadsTable({ leads, totalCount, currentPage, totalPages 
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
                         <input
                             type="text"
-                            placeholder="Search name, category, city..."
+                            placeholder="Enter to search..."
                             className="w-full bg-background/50 border border-border-subtle rounded-lg pl-10 pr-4 py-2.5 text-xs text-text-main focus:border-neon outline-none transition-all"
                             value={searchTerm}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                setSearchTerm(val);
-                                updateQuery({ q: val });
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    updateQuery({ q: searchTerm });
+                                }
                             }}
                         />
                     </div>
@@ -250,11 +246,7 @@ export default function LeadsTable({ leads, totalCount, currentPage, totalPages 
                         <select
                             className="flex-1 bg-background/50 border border-border-subtle rounded-lg px-3 py-2.5 text-xs text-text-muted outline-none focus:border-neon"
                             value={statusFilter}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                setStatusFilter(val);
-                                updateQuery({ status: val });
-                            }}
+                            onChange={(e) => updateQuery({ status: e.target.value })}
                         >
                             <option value="all">Every Status</option>
                             <option value="SCRAPED">Completed</option>
@@ -266,11 +258,7 @@ export default function LeadsTable({ leads, totalCount, currentPage, totalPages 
                         <select
                             className="flex-1 bg-background/50 border border-border-subtle rounded-lg px-3 py-2.5 text-xs text-text-muted outline-none focus:border-neon"
                             value={ratingFilter}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                setRatingFilter(val);
-                                updateQuery({ rating: val });
-                            }}
+                            onChange={(e) => updateQuery({ rating: e.target.value })}
                         >
                             <option value="all">Any Rating</option>
                             <option value="high">★★★★+ (High)</option>
@@ -282,11 +270,7 @@ export default function LeadsTable({ leads, totalCount, currentPage, totalPages 
                     <select
                         className="bg-background/50 border border-border-subtle rounded-lg px-3 py-2.5 text-xs text-text-muted outline-none focus:border-neon"
                         value={categoryFilter}
-                        onChange={(e) => {
-                            const val = e.target.value;
-                            setCategoryFilter(val);
-                            updateQuery({ category: val });
-                        }}
+                        onChange={(e) => updateQuery({ category: e.target.value })}
                     >
                         <option value="all">All Niches</option>
                         {categories.map(cat => (

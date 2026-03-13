@@ -4,6 +4,7 @@ import { LeadService } from "@/modules/leads/service";
 import { analyzeWebsite } from "@/modules/audit/analyzer";
 import { generatePersonalizedMessage } from "@/modules/ghostwriter/personalizer";
 import { AppError } from "@/lib/errors";
+import { Lead } from "@prisma/client";
 
 export async function deleteLeadAction(id: string) {
     try {
@@ -74,9 +75,12 @@ export async function personalizeLeadAction(id: string) {
     }
 }
 
-export async function exportLeadsAction(filters?: any, selectedIds?: string[]) {
+export async function exportLeadsAction(
+    filters?: { q?: string; status?: string; rating?: string; category?: string }, 
+    selectedIds?: string[]
+) {
     try {
-        let leads: any[];
+        let leads: Lead[];
         if (selectedIds && selectedIds.length > 0) {
             leads = await LeadService.getLeadsByIds(selectedIds);
         } else {
@@ -85,7 +89,7 @@ export async function exportLeadsAction(filters?: any, selectedIds?: string[]) {
         }
 
         const headers = ["Business Name", "Category", "Rating", "Reviews", "City", "Status", "Website", "Phone", "Scraped Date"];
-        const rows = leads.map((l: any) => [
+        const rows = leads.map((l: Lead) => [
             `"${l.businessName.replace(/"/g, '""')}"`,
             `"${(l.category || "N/A").replace(/"/g, '""')}"`,
             l.rating || "N/A",
@@ -97,7 +101,7 @@ export async function exportLeadsAction(filters?: any, selectedIds?: string[]) {
             new Date(l.createdAt).toISOString().split('T')[0]
         ]);
 
-        const csvContent = [headers.join(","), ...rows.map((r: any) => r.join(","))].join("\n");
+        const csvContent = [headers.join(","), ...rows.map((r: (string | number)[]) => r.join(","))].join("\n");
         return { success: true, data: csvContent };
     } catch (error: unknown) {
         return { 

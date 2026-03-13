@@ -1,6 +1,5 @@
 import { LeadService } from "@/modules/leads/service";
-import { ApifyClient } from 'apify-client';
-import { ApifyUser } from "@/types";
+import { ApifyService } from "@/modules/scout/apify.service";
 import TopHeader from "@/components/TopHeader";
 import MetricsGrid from "@/components/MetricsGrid";
 import LeadsTable from "@/components/LeadsTable";
@@ -8,43 +7,13 @@ import ScoutButton from "@/components/ScoutButton";
 
 export const dynamic = "force-dynamic";
 
-const apifyClient = new ApifyClient({
-  token: process.env.APIFY_API_TOKEN,
-});
-
 export default async function Dashboard({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const token = process.env.APIFY_API_TOKEN;
-
-  // 1. Fetch User Data
-  const userResponse = await apifyClient.user().get();
-  const apifyUser = userResponse as ApifyUser;
-  const usage = apifyUser?.currentBillingPeriodUsage;
-
-  // 2. Apify Balance Logic
-  let balance = 0;
-  let resetDate = "N/A";
-
-  if (usage?.remainingSubscriptionCredits !== undefined) {
-    balance = usage.remainingSubscriptionCredits;
-    resetDate = new Date(usage.cycleEndsAt).toISOString().split('T')[0];
-  } else {
-    try {
-      const usageRes = await fetch(`https://api.apify.com/v2/users/me/usage/monthly?token=${token}`);
-      const usageData = await usageRes.json();
-      const currentMonth = usageData?.data?.[0];
-      
-      if (currentMonth) {
-        balance = currentMonth.totalUsageCreditsUsd || 0;
-        resetDate = new Date(currentMonth.endAt).toISOString().split('T')[0];
-      }
-    } catch (err) {
-      console.error("⚠️ Failed to fetch Apify usage fallback:", err);
-    }
-  }
+  // 1. Fetch Apify Account Balance (Encapsulated)
+  const { balance, resetDate } = await ApifyService.getApifyAccountBalance();
 
   // 3. Server-Side Lead Fetching (Filtered & Paginated)
   const page = typeof searchParams.page === 'string' ? parseInt(searchParams.page) : 1;

@@ -1,66 +1,48 @@
 import { ApifyClient } from 'apify-client';
-import { env } from '@/config/env';
-import { LeadService } from '../leads/service';
-import { Lead, ScrapedLead } from '@/types';
-import { AppError } from '@/lib/errors';
+import { ApifyUser } from '@/types';
 
-import { z } from 'zod';
-
-const client = new ApifyClient({
-    token: env.APIFY_API_TOKEN,
+const apifyClient = new ApifyClient({
+  token: process.env.APIFY_API_TOKEN,
 });
 
-const ApifyItemSchema = z.object({
-    title: z.string(),
-    placeId: z.string(),
-    website: z.string().optional().nullable(),
-    phone: z.string().optional().nullable(),
-    rating: z.number().optional().nullable(),
-    reviewsCount: z.number().optional().nullable(),
-});
-
-export const scoutMorocco = async (
-    city: string = env.DEFAULT_CITY, 
-    category: string = env.DEFAULT_CATEGORY,
-    limit: number = 10
-) => {
+export class ApifyService {
+  /**
+   * Fetches the current Apify account balance and reset details.
+   * Handles both Subscription and Free plan usage fallbacks.
+   */
+  static async getApifyAccountBalance(): Promise<{ balance: number; resetDate: string }> {
+    const token = process.env.APIFY_API_TOKEN;
+    
     try {
-        const run = await client.actor(env.APIFY_SCOUT_ACTOR_ID).call({
-            "searchStringsArray": [`${category}`],
-            "locationQuery": `${city}, Morocco`,
-            "maxCrawledPlacesPerSearch": limit,
-            "language": env.APP_LANGUAGE,
-            "maxImages": 0,
-            "maxReviews": 0,
-            "includeWebsites": true
-        });
+      // 1. Fetch User Data from Client
+      const userResponse = await apifyClient.user().get();
+      const apifyUser = userResponse as ApifyUser;
+      const usage = apifyUser?.currentBillingPeriodUsage;
 
-        const { items } = await client.dataset(run.defaultDatasetId).listItems();
+      // 2. Resolve Subscription Balance
+      if (usage?.remainingSubscriptionCredits !== undefined) {
+        return {
+          balance: usage.remainingSubscriptionCredits,
+          resetDate: new Date(usage.cycleEndsAt).toISOString().split('T')[0]
+        };
+      }
 
-        const validLeads = items
-            .map((item) => {
-                const result = ApifyItemSchema.safeParse(item);
-                return result.success ? result.data : null;
-            })
-            .filter((item): item is z.infer<typeof ApifyItemSchema> => 
-                item !== null && (!!item.website || !!item.phone)
-            );
+      // 3. Free Plan Fallback (Monthly Usage API)
+      const usageRes = await fetch(`https://api.apify.com/v2/users/me/usage/monthly?token=${token}`);
+      const usageData = await usageRes.json();
+      const currentMonth = usageData?.data?.[0];
+      
+      if (currentMonth) {
+        return {
+          balance: currentMonth.totalUsageCreditsUsd || 0,
+          resetDate: new Date(currentMonth.endAt).toISOString().split('T')[0]
+        };
+      }
 
-        const savedLeads: Lead[] = [];
-        for (const lead of validLeads) {
-            const saved = await LeadService.upsertScrapedLead(lead, city, category);
-            savedLeads.push(saved);
-        }
-
-        return savedLeads;
-    } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : "Unknown error";
-        console.error("Scout Error:", error);
-        throw new AppError(
-            message || "Failed to scrape leads from Apify", 
-            "SCRAPING_FAILED", 
-            500, 
-            error
-        );
+      return { balance: 0, resetDate: "N/A" };
+    } catch (err) {
+      console.error("⚠️ Apify Balance Sync Failed:", err);
+      return { balance: 0, resetDate: "Error" };
     }
-};
+  }
+}
