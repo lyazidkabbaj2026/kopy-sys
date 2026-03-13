@@ -68,11 +68,12 @@ export const analyzeWebsite = async (url: string): Promise<AuditResult> => {
             score: Math.max(0, score),
             issues
         };
-    } catch (error: any) {
-        console.error(`Audit error for ${url}:`, error.message);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        console.error(`Audit error for ${url}:`, message);
         return {
             score: 0,
-            issues: [`Failed to analyze website: ${error.message}`]
+            issues: [`Failed to analyze website: ${message}`]
         };
     }
 };

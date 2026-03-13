@@ -18,7 +18,7 @@ export default async function Dashboard() {
   // 1. Fetch User Data
   const userResponse = await apifyClient.user().get();
   const apifyUser = userResponse as ApifyUser;
-  let usage = apifyUser?.currentBillingPeriodUsage;
+  const usage = apifyUser?.currentBillingPeriodUsage;
 
   // 2. Fallback to Monthly Usage API if CBPU is missing (common on Free plans)
   let balance = 0;
@@ -51,7 +51,14 @@ export default async function Dashboard() {
     }
   }
 
-  const leads = await prisma.lead.findMany({ orderBy: { createdAt: "desc" } });
+  let leads: any[] = []; // Explicitly typed as any[] for now to avoid lint error while debugging, will refine later
+  try {
+    leads = await prisma.lead.findMany({ 
+      orderBy: { createdAt: "desc" } 
+    });
+  } catch (err) {
+    console.error("❌ Prisma fetch error:", err);
+  }
 
   return (
     <div className="flex h-screen w-full bg-background text-text-main overflow-hidden font-sans">

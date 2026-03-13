@@ -1,3 +1,7 @@
+import { Lead, LeadStatus } from "@prisma/client";
+
+export type { Lead, LeadStatus };
+
 export interface ApifyUser {
   id: string;
   username: string;
@@ -17,10 +21,26 @@ export interface ScrapedLead {
   reviewsCount?: number;
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
+  code?: string;
   message?: string;
   count?: number;
+}
+
+
+export interface ServiceResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+export interface LeadContext {
+    businessName: string;
+    category?: string | null;
+    city?: string | null;
+    auditScore?: number | null;
+    auditIssues?: string[] | null;
 }

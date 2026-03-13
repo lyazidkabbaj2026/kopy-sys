@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { AppError } from '@/lib/errors';
 
 export async function POST(request: Request) {
     try {
         const { ids } = await request.json();
 
         if (!ids || !Array.isArray(ids)) {
-            return NextResponse.json({ success: false, error: "Missing or invalid ids" }, { status: 400 });
+            throw new AppError("Missing or invalid ids", "BAD_REQUEST", 400);
         }
 
         await prisma.lead.deleteMany({
@@ -16,7 +17,12 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json({ success: true, message: `${ids.length} leads deleted successfully` });
-    } catch (error: any) {
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        if (error instanceof AppError) {
+            return NextResponse.json(error.toJSON(), { status: error.statusCode });
+        }
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }
+

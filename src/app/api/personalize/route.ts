@@ -1,21 +1,17 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { LeadService } from '@/services/leadService';
 import { generatePersonalizedMessage } from '@/modules/ghostwriter/personalizer';
-import { ApiResponse } from '@/types';
+import { AppError } from '@/lib/errors';
 
 export async function POST(request: Request) {
     try {
         const { leadId } = await request.json();
 
         if (!leadId) {
-            return NextResponse.json({ success: false, error: "Missing leadId" }, { status: 400 });
+            throw new AppError("Missing leadId", "BAD_REQUEST", 400);
         }
 
-        const lead = await prisma.lead.findUnique({ where: { id: leadId } });
-
-        if (!lead) {
-            return NextResponse.json({ success: false, error: "Lead not found" }, { status: 404 });
-        }
+        const lead = await LeadService.findById(leadId);
 
         const aiMessage = await generatePersonalizedMessage({
             businessName: lead.businessName,
@@ -25,22 +21,21 @@ export async function POST(request: Request) {
             auditIssues: lead.auditIssues,
         });
 
-        const updatedLead = await prisma.lead.update({
-            where: { id: leadId },
-            data: {
-                aiMessageDraft: aiMessage,
-                status: "MESSAGED"
-            }
+        const updatedLead = await LeadService.updateStatus(leadId, "MESSAGED", {
+            aiMessageDraft: aiMessage
         });
 
-        const response: ApiResponse = {
+        return NextResponse.json({
             success: true,
             data: updatedLead,
             message: "AI message generated successfully"
-        };
-
-        return NextResponse.json(response);
-    } catch (error: any) {
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+        });
+    } catch (error: unknown) {
+        if (error instanceof AppError) {
+            return NextResponse.json(error.toJSON(), { status: error.statusCode });
+        }
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }
+

@@ -1,18 +1,20 @@
 import { ApifyClient } from 'apify-client';
-import { prisma } from "@/lib/prisma";
+import { env } from '@/config/env';
+import { LeadService } from '../leadService';
 import { ScrapedLead } from '@/types';
+import { AppError } from '@/lib/errors';
 
 const client = new ApifyClient({
-    token: process.env.APIFY_API_TOKEN,
+    token: env.APIFY_API_TOKEN,
 });
 
-export const scoutMorocco = async (city: string, category: string) => {
+export const scoutMorocco = async (city: string = env.DEFAULT_CITY, category: string = env.DEFAULT_CATEGORY) => {
     try {
-        const run = await client.actor("compass/crawler-google-places").call({
+        const run = await client.actor(env.APIFY_SCOUT_ACTOR_ID).call({
             "searchStringsArray": [`${category}`],
             "locationQuery": `${city}, Morocco`,
             "maxCrawledPlacesPerSearch": 10,
-            "language": "fr",
+            "language": env.APP_LANGUAGE,
             "maxImages": 0,
             "maxReviews": 0,
             "includeWebsites": true
@@ -25,32 +27,18 @@ export const scoutMorocco = async (city: string, category: string) => {
         );
 
         const savedLeads = await Promise.all(
-            validItems.map((item) => {
-                const uniqueKey = item.website || item.placeId;
-
-                return prisma.lead.upsert({
-                    where: { website: uniqueKey },
-                    update: {
-                        lastScrapedAt: new Date(),
-                    },
-                    create: {
-                        businessName: item.title,
-                        website: item.website || null,
-                        phone: item.phone || null,
-                        rating: item.rating || null,
-                        reviewsCount: item.reviewsCount || 0,
-                        city: city,
-                        category: category,
-                        status: "SCRAPED",
-                        lastScrapedAt: new Date(),
-                    },
-                });
-            })
+            validItems.map((item) => LeadService.upsertScrapedLead(item, city, category))
         );
 
         return savedLeads;
-    } catch (error) {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unknown error";
         console.error("Scout Error:", error);
-        throw error;
+        throw new AppError(
+            message || "Failed to scrape leads from Apify", 
+            "SCRAPING_FAILED", 
+            500, 
+            error
+        );
     }
-};
+};

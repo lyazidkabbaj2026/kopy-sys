@@ -1,35 +1,26 @@
 import { NextResponse } from 'next/server';
 import { scoutMorocco } from '@/services/scout/apify';
-import { ApiResponse } from '@/types';
+import { env } from '@/config/env';
+import { AppError } from '@/lib/errors';
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const city = body.city || "Casablanca";
-        const category = body.category || "Spa";
-
-        if (!process.env.APIFY_API_TOKEN) {
-            const errorResponse: ApiResponse = {
-                success: false,
-                error: "Missing APIFY_API_TOKEN"
-            };
-            return NextResponse.json(errorResponse, { status: 500 });
-        }
+        const city = body.city || env.DEFAULT_CITY;
+        const category = body.category || env.DEFAULT_CATEGORY;
 
         const leads = await scoutMorocco(city, category);
 
-        const successResponse: ApiResponse = {
+        return NextResponse.json({
             success: true,
             count: leads.length,
             message: `Scraped ${leads.length} leads in ${city}`
-        };
-
-        return NextResponse.json(successResponse);
-    } catch (error: any) {
-        const errorResponse: ApiResponse = {
-            success: false,
-            error: error.message
-        };
-        return NextResponse.json(errorResponse, { status: 500 });
+        });
+    } catch (error: unknown) {
+        if (error instanceof AppError) {
+            return NextResponse.json(error.toJSON(), { status: error.statusCode });
+        }
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
-}
+}

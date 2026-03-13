@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { AppError } from '@/lib/errors';
 
 export async function DELETE(
     request: Request,
@@ -7,6 +8,7 @@ export async function DELETE(
 ) {
     try {
         const { id } = await params;
+        
         await prisma.lead.delete({
             where: { id }
         });
@@ -16,3 +18,4 @@ export async function DELETE(
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
+
