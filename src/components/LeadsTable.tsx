@@ -2,15 +2,15 @@
 
 import { useState, useMemo } from "react";
 import {
-    Download, Edit2, Trash2, Globe, Phone,
+    Download, Trash2, Globe, Phone,
     Search, Filter, ArrowUpDown, FileSpreadsheet,
-    MapPin, Star, Users, LayoutDashboard, Sparkles, Loader2,
-    Zap, Copy, Check, X, MoreHorizontal, Trash, ChevronDown, Archive
+    MapPin, Star, Users, Sparkles, Loader2,
+    Zap, Copy, Check, X, Trash, Archive
 } from "lucide-react";
 import { Lead } from "@prisma/client";
 import AIPersonalizerModal from "./AIPersonalizerModal";
-import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useTransition, useEffect } from "react";
 import {
     deleteLeadAction,
     bulkDeleteLeadsAction,
@@ -20,14 +20,38 @@ import {
 
 export default function LeadsTable({ leads }: { leads: Lead[] }) {
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const [isPending, startTransition] = useTransition();
 
-    // 1. CRM State Management
-    const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState<string>("all");
-    const [ratingFilter, setRatingFilter] = useState<string>("all");
-    const [categoryFilter, setCategoryFilter] = useState<string>("all");
+    // 1. CRM State Management (URL-Driven Sync)
+    const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
+    const [statusFilter, setStatusFilter] = useState<string>(searchParams.get("status") || "all");
+    const [ratingFilter, setRatingFilter] = useState<string>(searchParams.get("rating") || "all");
+    const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get("category") || "all");
     const [sortConfig, setSortConfig] = useState<{ key: keyof Lead, direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
+
+    // Helper to update URL params
+    const updateQuery = (updates: Record<string, string | null>) => {
+        const params = new URLSearchParams(searchParams.toString());
+        Object.entries(updates).forEach(([key, value]) => {
+            if (value === null || value === "all" || value === "") {
+                params.delete(key);
+            } else {
+                params.set(key, value);
+            }
+        });
+        const query = params.toString();
+        router.push(`${pathname}${query ? `?${query}` : ""}`, { scroll: false });
+    };
+
+    // Keep local state in sync with URL if it changes externally
+    useEffect(() => {
+        setSearchTerm(searchParams.get("q") || "");
+        setStatusFilter(searchParams.get("status") || "all");
+        setRatingFilter(searchParams.get("rating") || "all");
+        setCategoryFilter(searchParams.get("category") || "all");
+    }, [searchParams]);
 
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [auditingId, setAuditingId] = useState<string | null>(null);
@@ -167,7 +191,7 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
             l.status,
             l.website || "N/A",
             l.phone || "N/A",
-            new Date(l.createdAt).toLocaleDateString()
+            new Date(l.createdAt).toISOString().split('T')[0]
         ]);
 
         const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
@@ -225,6 +249,7 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
         setStatusFilter("all");
         setRatingFilter("all");
         setCategoryFilter("all");
+        router.push(pathname, { scroll: false });
     };
 
     return (
@@ -239,7 +264,11 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                             placeholder="Search name, category, city..."
                             className="w-full bg-background/50 border border-border-subtle rounded-lg pl-10 pr-4 py-2.5 text-xs text-text-main focus:border-neon outline-none transition-all"
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setSearchTerm(val);
+                                updateQuery({ q: val });
+                            }}
                         />
                     </div>
 
@@ -247,7 +276,11 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                         <select
                             className="flex-1 bg-background/50 border border-border-subtle rounded-lg px-3 py-2.5 text-xs text-text-muted outline-none focus:border-neon"
                             value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setStatusFilter(val);
+                                updateQuery({ status: val });
+                            }}
                         >
                             <option value="all">Every Status</option>
                             <option value="SCRAPED">Completed</option>
@@ -259,7 +292,11 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                         <select
                             className="flex-1 bg-background/50 border border-border-subtle rounded-lg px-3 py-2.5 text-xs text-text-muted outline-none focus:border-neon"
                             value={ratingFilter}
-                            onChange={(e) => setRatingFilter(e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setRatingFilter(val);
+                                updateQuery({ rating: val });
+                            }}
                         >
                             <option value="all">Any Rating</option>
                             <option value="high">★★★★+ (High)</option>
@@ -271,7 +308,11 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                     <select
                         className="bg-background/50 border border-border-subtle rounded-lg px-3 py-2.5 text-xs text-text-muted outline-none focus:border-neon"
                         value={categoryFilter}
-                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            setCategoryFilter(val);
+                            updateQuery({ category: val });
+                        }}
                     >
                         <option value="all">All Niches</option>
                         {categories.map(cat => (
@@ -412,7 +453,7 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                                         </div>
                                     </td>
                                     <td className="p-4 border-b border-border-subtle/10 whitespace-nowrap">
-                                        <span className="text-[10px] text-text-muted font-mono">{new Date(lead.createdAt).toLocaleDateString()}</span>
+                                        <span className="text-[10px] text-text-muted font-mono">{new Date(lead.createdAt).toISOString().split('T')[0]}</span>
                                     </td>
                                     <td className="p-4 border-b border-border-subtle/10 text-right pr-6">
                                         <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
