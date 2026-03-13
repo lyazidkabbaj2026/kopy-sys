@@ -76,7 +76,7 @@ export async function personalizeLeadAction(id: string) {
 }
 
 export async function exportLeadsAction(
-    filters?: { q?: string; status?: string; rating?: string; category?: string }, 
+    filters?: Record<string, string | undefined>, 
     selectedIds?: string[]
 ) {
     try {

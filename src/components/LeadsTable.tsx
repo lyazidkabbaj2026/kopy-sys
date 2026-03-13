@@ -33,10 +33,20 @@ export default function LeadsTable({ leads, totalCount, currentPage, totalPages 
     const [isPending, startTransition] = useTransition();
 
     // 1. CRM State Management (URL-Driven & Derived)
-    const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
+    const [inputValue, setInputValue] = useState(searchParams.get("q") || "");
     const statusFilter = searchParams.get("status") || "all";
     const ratingFilter = searchParams.get("rating") || "all";
     const categoryFilter = searchParams.get("category") || "all";
+
+    // Implement Search Debounce
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            if (inputValue !== (searchParams.get("q") || "")) {
+                updateQuery({ q: inputValue });
+            }
+        }, 500);
+        return () => clearTimeout(timeout);
+    }, [inputValue, searchParams]);
 
     // Helper to update URL params
     const updateQuery = (updates: Record<string, string | null>) => {
@@ -156,13 +166,8 @@ export default function LeadsTable({ leads, totalCount, currentPage, totalPages 
 
     const handleExportAll = async () => {
         startTransition(async () => {
-            const filters = {
-                q: searchTerm,
-                status: statusFilter,
-                rating: ratingFilter,
-                category: categoryFilter
-            };
-            const result = await exportLeadsAction(filters);
+            const currentFilters = Object.fromEntries(searchParams.entries());
+            const result = await exportLeadsAction(currentFilters);
             if (result.success && result.data) {
                 handleDownloadCSV(result.data, `leads-master-${new Date().toISOString().split('T')[0]}.csv`);
             }
@@ -217,7 +222,7 @@ export default function LeadsTable({ leads, totalCount, currentPage, totalPages 
     };
 
     const resetFilters = () => {
-        setSearchTerm("");
+        setInputValue("");
         router.push(pathname, { scroll: false });
     };
 
@@ -232,13 +237,8 @@ export default function LeadsTable({ leads, totalCount, currentPage, totalPages 
                             type="text"
                             placeholder="Enter to search..."
                             className="w-full bg-background/50 border border-border-subtle rounded-lg pl-10 pr-4 py-2.5 text-xs text-text-main focus:border-neon outline-none transition-all"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    updateQuery({ q: searchTerm });
-                                }
-                            }}
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
                         />
                     </div>
 

@@ -7,11 +7,10 @@ import ScoutButton from "@/components/ScoutButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function Dashboard({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
+export default async function Dashboard(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const searchParams = await props.searchParams;
   // 1. Fetch Apify Account Balance (Encapsulated)
   const { balance, resetDate } = await ApifyService.getApifyAccountBalance();
 
