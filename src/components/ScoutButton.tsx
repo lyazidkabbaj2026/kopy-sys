@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { DownloadCloud, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Search, DownloadCloud } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
+import { useState } from "react";
+import { triggerScout } from "@/app/actions/scout";
 
 export default function ScoutButton() {
     const [loading, setLoading] = useState(false);
@@ -15,10 +15,15 @@ export default function ScoutButton() {
         if (!city || !category) return;
         setLoading(true);
         try {
-            await apiClient.post("/api/scout", { city, category });
-            router.refresh();
-        } catch (error: any) {
-            alert(`Scout failed: ${error.message}`);
+            const result = await triggerScout(city, category);
+            if (result.success) {
+                router.refresh();
+            } else {
+                alert(`Scout failed: ${result.error}`);
+            }
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "An unknown error occurred";
+            alert(`Scout failed: ${message}`);
         } finally {
             setLoading(false);
         }

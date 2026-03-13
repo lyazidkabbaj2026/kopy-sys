@@ -11,7 +11,7 @@ type ApiResponse<T> = {
 
 class ApiClient {
   private baseUrl: string = "";
-  private apiKey: string = process.env.NEXT_PUBLIC_API_SECRET_KEY || "";
+  private apiKey: string = "";
 
   private async request<T>(url: string, options: RequestInit = {}): Promise<T> {
     const headers = {
