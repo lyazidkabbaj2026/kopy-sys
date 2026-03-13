@@ -10,6 +10,7 @@ import {
 import { Lead } from "@prisma/client";
 import AIPersonalizerModal from "./AIPersonalizerModal";
 import { useRouter } from "next/navigation";
+import { apiClient } from "@/lib/api-client";
 
 export default function LeadsTable({ leads }: { leads: Lead[] }) {
     const router = useRouter();
@@ -116,24 +117,21 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this lead?")) return;
         try {
-            await fetch(`/api/leads/${id}`, { method: "DELETE" });
+            await apiClient.delete(`/api/leads/${id}`);
             router.refresh();
-        } catch (err) {
-            console.error("Delete error:", err);
+        } catch (err: any) {
+            alert(`Delete error: ${err.message}`);
         }
     };
 
     const handleBulkDelete = async () => {
         if (!confirm(`Delete ${selectedIds.length} leads?`)) return;
         try {
-            await fetch("/api/leads/bulk-delete", {
-                method: "POST",
-                body: JSON.stringify({ ids: selectedIds }),
-            });
+            await apiClient.post("/api/leads/bulk-delete", { ids: selectedIds });
             setSelectedIds([]);
             router.refresh();
-        } catch (err) {
-            console.error("Bulk delete error:", err);
+        } catch (err: any) {
+            alert(`Bulk delete error: ${err.message}`);
         }
     };
 
@@ -177,13 +175,10 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
     const handleAudit = async (leadId: string) => {
         setAuditingId(leadId);
         try {
-            const resp = await fetch("/api/audit", {
-                method: "POST",
-                body: JSON.stringify({ leadId }),
-            });
-            if (resp.ok) router.refresh();
-        } catch (err) {
-            console.error(err);
+            await apiClient.post("/api/audit", { leadId });
+            router.refresh();
+        } catch (err: any) {
+            alert(`Audit failed: ${err.message}`);
         } finally {
             setAuditingId(null);
         }
@@ -192,17 +187,11 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
     const handlePersonalize = async (leadId: string) => {
         setPersonalizingId(leadId);
         try {
-            const resp = await fetch("/api/personalize", {
-                method: "POST",
-                body: JSON.stringify({ leadId }),
-            });
-            const data = await resp.json();
-            if (data.success) {
-                setSelectedLead(data.data);
-                setIsModalOpen(true);
-            }
-        } catch (err) {
-            console.error(err);
+            const data = await apiClient.post<Lead>("/api/personalize", { leadId });
+            setSelectedLead(data);
+            setIsModalOpen(true);
+        } catch (err: any) {
+            alert(`AI Personalization failed: ${err.message}`);
         } finally {
             setPersonalizingId(null);
         }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, DownloadCloud } from "lucide-react";
+import { apiClient } from "@/lib/api-client";
 
 export default function ScoutButton() {
     const [loading, setLoading] = useState(false);
@@ -14,14 +15,10 @@ export default function ScoutButton() {
         if (!city || !category) return;
         setLoading(true);
         try {
-            await fetch("/api/scout", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ city, category }),
-            });
+            await apiClient.post("/api/scout", { city, category });
             router.refresh();
-        } catch (error) {
-            console.error("Failed to scout:", error);
+        } catch (error: any) {
+            alert(`Scout failed: ${error.message}`);
         } finally {
             setLoading(false);
         }

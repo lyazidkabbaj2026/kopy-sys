@@ -2,14 +2,20 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
-const connectionString = process.env.DATABASE_URL;
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool as any);
+const prismaClientSingleton = () => {
+    const connectionString = process.env.DATABASE_URL;
+    const pool = new Pool({ connectionString });
+    const adapter = new PrismaPg(pool as any);
+    return new PrismaClient({ adapter });
+};
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+declare global {
+    var prismaGlobal: undefined | ReturnType<typeof prismaClientSingleton>;
+}
 
-export const prisma = globalForPrisma.prisma || new PrismaClient({ adapter });
+const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== "production") globalThis.prismaGlobal = prisma;
 
-export default prisma;
+export default prisma;
+export { prisma };
