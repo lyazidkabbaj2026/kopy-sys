@@ -2,29 +2,16 @@ import { groq } from "./groq";
 import { env } from "@/config/env";
 import { LeadContext } from "@/types";
 import { AppError } from "@/lib/errors";
+import { getPersonalizationPrompt } from "@/config/prompts";
 
 export const generatePersonalizedMessage = async (context: LeadContext) => {
-    const issuesList = context.auditIssues?.join(", ") || "no major technical issues found";
-    
-    const prompt = `
-        You are an expert B2B sales copywriter specializing in the Moroccan market.
-        Write a professional, short, and highly personalized cold outreach message for ${context.businessName}.
-        
-        Context:
-        - Category: ${context.category || "General Business"}
-        - Location: ${context.city || env.DEFAULT_CITY}
-        - Website Audit Score: ${context.auditScore || "N/A"}/100
-        - Known Issues: ${issuesList}
-        
-        STRICT RULES:
-        1. Use a mix of Professional French (80%) and friendly Moroccan Darija (20%).
-        2. Specifically reference one of their website audit issues as a pain point if available.
-        3. The tone must be premium, helpful, and localized (Moroccan context).
-        4. Do NOT use placeholders like [Your Name]. End with "L'équipe ${env.BRAND_NAME}".
-        5. Keep it under 100 words.
-        
-        Response format: Just the message text.
-    `;
+    const prompt = getPersonalizationPrompt({
+        businessName: context.businessName,
+        category: context.category ?? undefined,
+        city: context.city ?? undefined,
+        auditScore: context.auditScore ?? undefined,
+        auditIssues: context.auditIssues ?? undefined
+    });
 
     try {
         const completion = await groq.chat.completions.create({

@@ -4,6 +4,8 @@ import { analyzeWebsite } from '@/modules/audit/analyzer';
 import { withErrorHandler } from '@/lib/api-wrapper';
 import { z } from 'zod';
 
+import { AppError } from '@/lib/errors';
+
 const AuditRequestSchema = z.object({
     leadId: z.string().min(1, "leadId is required"),
 });
@@ -15,7 +17,7 @@ export const POST = withErrorHandler(async (request: Request) => {
     const lead = await LeadService.findById(leadId);
 
     if (!lead.website) {
-        throw new Error("Lead has no website to audit");
+        throw new AppError("Lead has no website to audit", "BAD_REQUEST", 400);
     }
 
     const audit = await analyzeWebsite(lead.website);
