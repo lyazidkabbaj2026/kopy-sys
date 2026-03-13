@@ -1,28 +1,21 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { AppError } from '@/lib/errors';
+import { LeadService } from '@/modules/leads/service';
+import { withErrorHandler } from '@/lib/api-wrapper';
+import { z } from 'zod';
 
-export async function POST(request: Request) {
-    try {
-        const { ids } = await request.json();
+const BulkDeleteSchema = z.object({
+    ids: z.array(z.string()).min(1, "At least one ID is required"),
+});
 
-        if (!ids || !Array.isArray(ids)) {
-            throw new AppError("Missing or invalid ids", "BAD_REQUEST", 400);
-        }
+export const POST = withErrorHandler(async (request: Request) => {
+    const body = await request.json();
+    const { ids } = BulkDeleteSchema.parse(body);
 
-        await prisma.lead.deleteMany({
-            where: {
-                id: { in: ids }
-            }
-        });
+    const result = await LeadService.bulkDelete(ids);
 
-        return NextResponse.json({ success: true, message: `${ids.length} leads deleted successfully` });
-    } catch (error: unknown) {
-        if (error instanceof AppError) {
-            return NextResponse.json(error.toJSON(), { status: error.statusCode });
-        }
-        const message = error instanceof Error ? error.message : "Unknown error";
-        return NextResponse.json({ success: false, error: message }, { status: 500 });
-    }
-}
+    return NextResponse.json({ 
+        success: true, 
+        message: `${result.count} leads deleted successfully` 
+    });
+});
 

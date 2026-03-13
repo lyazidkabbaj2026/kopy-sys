@@ -63,4 +63,26 @@ export class LeadService {
       orderBy: { createdAt: 'desc' }
     });
   }
+
+  static async delete(id: string): Promise<Lead> {
+    try {
+      return await prisma.lead.delete({
+        where: { id }
+      });
+    } catch (error) {
+      throw new AppError(`Failed to delete lead with ID ${id}`, "DATABASE_ERROR", 500, error);
+    }
+  }
+
+  static async bulkDelete(ids: string[]): Promise<{ count: number }> {
+    try {
+      return await prisma.lead.deleteMany({
+        where: {
+          id: { in: ids }
+        }
+      });
+    } catch (error) {
+      throw new AppError("Failed to perform bulk delete", "DATABASE_ERROR", 500, error);
+    }
+  }
 }

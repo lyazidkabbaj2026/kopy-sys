@@ -2,19 +2,20 @@ import { NextResponse } from 'next/server';
 import { LeadService } from '@/modules/leads/service';
 import { analyzeWebsite } from '@/modules/audit/analyzer';
 import { withErrorHandler } from '@/lib/api-wrapper';
-import { AppError } from '@/lib/errors';
+import { z } from 'zod';
+
+const AuditRequestSchema = z.object({
+    leadId: z.string().min(1, "leadId is required"),
+});
 
 export const POST = withErrorHandler(async (request: Request) => {
-    const { leadId } = await request.json();
-
-    if (!leadId) {
-        throw new AppError("Missing leadId", "BAD_REQUEST", 400);
-    }
+    const body = await request.json();
+    const { leadId } = AuditRequestSchema.parse(body);
 
     const lead = await LeadService.findById(leadId);
 
     if (!lead.website) {
-        throw new AppError("Lead has no website to audit", "BAD_REQUEST", 400);
+        throw new Error("Lead has no website to audit");
     }
 
     const audit = await analyzeWebsite(lead.website);

@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { AppError } from "./errors";
 
-export type RouteHandler = (request: Request, context?: any) => Promise<Response>;
+export type RouteHandler = (request: Request, context?: unknown) => Promise<Response>;
 
 export function withErrorHandler(handler: RouteHandler) {
-  return async (request: Request, context?: any) => {
+  return async (request: Request, context?: unknown) => {
     try {
       return await handler(request, context);
     } catch (error: unknown) {

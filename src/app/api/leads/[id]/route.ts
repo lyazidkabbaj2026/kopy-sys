@@ -1,21 +1,16 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { AppError } from '@/lib/errors';
+import { LeadService } from '@/modules/leads/service';
+import { withErrorHandler } from '@/lib/api-wrapper';
 
-export async function DELETE(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
-) {
-    try {
-        const { id } = await params;
-        
-        await prisma.lead.delete({
-            where: { id }
-        });
+export const DELETE = withErrorHandler(async (
+    _request: Request,
+    context: unknown
+) => {
+    const { params } = context as { params: Promise<{ id: string }> };
+    const { id } = await params;
+    
+    await LeadService.delete(id);
 
-        return NextResponse.json({ success: true, message: "Lead deleted successfully" });
-    } catch (error: any) {
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-    }
-}
+    return NextResponse.json({ success: true, message: "Lead deleted successfully" });
+});
 
