@@ -81,7 +81,7 @@ export class LeadService {
     };
   }
 
-  static async delete(id: string): Promise<Lead> {
+  static async deleteLead(id: string): Promise<Lead> {
     try {
       return await prisma.lead.delete({
         where: { id }
@@ -91,7 +91,7 @@ export class LeadService {
     }
   }
 
-  static async bulkDelete(ids: string[]): Promise<{ count: number }> {
+  static async bulkDeleteLeads(ids: string[]): Promise<{ count: number }> {
     try {
       return await prisma.lead.deleteMany({
         where: {

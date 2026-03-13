@@ -10,10 +10,17 @@ import {
 import { Lead } from "@prisma/client";
 import AIPersonalizerModal from "./AIPersonalizerModal";
 import { useRouter } from "next/navigation";
-import { apiClient } from "@/lib/api-client";
+import { useTransition } from "react";
+import { 
+    deleteLeadAction, 
+    bulkDeleteLeadsAction, 
+    auditLeadAction, 
+    personalizeLeadAction 
+} from "@/app/actions/leads";
 
 export default function LeadsTable({ leads }: { leads: Lead[] }) {
     const router = useRouter();
+    const [isPending, startTransition] = useTransition();
 
     // 1. CRM State Management
     const [searchTerm, setSearchTerm] = useState("");
@@ -114,25 +121,29 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
         setTimeout(() => setCopySuccess(null), 2000);
     };
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = (id: string) => {
         if (!confirm("Are you sure you want to delete this lead?")) return;
-        try {
-            await apiClient.delete(`/api/leads/${id}`);
-            router.refresh();
-        } catch (err: any) {
-            alert(`Delete error: ${err.message}`);
-        }
+        startTransition(async () => {
+            const result = await deleteLeadAction(id);
+            if (result.success) {
+                router.refresh();
+            } else {
+                alert(`Delete error: ${result.error}`);
+            }
+        });
     };
 
-    const handleBulkDelete = async () => {
+    const handleBulkDelete = () => {
         if (!confirm(`Delete ${selectedIds.length} leads?`)) return;
-        try {
-            await apiClient.post("/api/leads/bulk-delete", { ids: selectedIds });
-            setSelectedIds([]);
-            router.refresh();
-        } catch (err: any) {
-            alert(`Bulk delete error: ${err.message}`);
-        }
+        startTransition(async () => {
+            const result = await bulkDeleteLeadsAction(selectedIds);
+            if (result.success) {
+                setSelectedIds([]);
+                router.refresh();
+            } else {
+                alert(`Bulk delete error: ${result.error}`);
+            }
+        });
     };
 
     const exportToCSV = () => {
@@ -172,29 +183,36 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
         a.click();
     };
 
-    const handleAudit = async (leadId: string) => {
+    const handleAudit = (leadId: string) => {
         setAuditingId(leadId);
-        try {
-            await apiClient.post("/api/audit", { leadId });
-            router.refresh();
-        } catch (err: any) {
-            alert(`Audit failed: ${err.message}`);
-        } finally {
+        startTransition(async () => {
+            const result = await auditLeadAction(leadId);
+            if (result.success) {
+                router.refresh();
+            } else {
+                alert(`Audit failed: ${result.error}`);
+            }
             setAuditingId(null);
-        }
+        });
     };
 
-    const handlePersonalize = async (leadId: string) => {
+    const handlePersonalize = (leadId: string) => {
         setPersonalizingId(leadId);
-        try {
-            const data = await apiClient.post<Lead>("/api/personalize", { leadId });
-            setSelectedLead(data);
-            setIsModalOpen(true);
-        } catch (err: any) {
-            alert(`AI Personalization failed: ${err.message}`);
-        } finally {
+        startTransition(async () => {
+            const result = await personalizeLeadAction(leadId);
+            if (result.success) {
+                // Fetch the updated lead from the list or we'd need to fetch it separately
+                // Since router.refresh() is async, we might want the action to return the lead
+                const updatedLead = leads.find(l => l.id === leadId);
+                if (updatedLead) {
+                    setSelectedLead({ ...updatedLead, aiMessageDraft: result.data as string });
+                    setIsModalOpen(true);
+                }
+            } else {
+                alert(`AI Personalization failed: ${result.error}`);
+            }
             setPersonalizingId(null);
-        }
+        });
     };
 
     const handleSaveAISuccess = (newMessage: string) => {
@@ -400,14 +418,16 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                                         <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
                                                 onClick={() => handleAudit(lead.id)}
-                                                className="p-1.5 hover:bg-white/5 text-text-muted hover:text-white transition-all rounded-md"
+                                                disabled={isPending}
+                                                className="p-1.5 hover:bg-white/5 text-text-muted hover:text-white transition-all rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                                                 title="AI Audit Site"
                                             >
                                                 {auditingId === lead.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
                                             </button>
                                             <button
                                                 onClick={() => handlePersonalize(lead.id)}
-                                                className="p-1.5 hover:bg-neon/10 text-text-muted hover:text-neon transition-all rounded-md"
+                                                disabled={isPending}
+                                                className="p-1.5 hover:bg-neon/10 text-text-muted hover:text-neon transition-all rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                                                 title="Generate Message"
                                             >
                                                 {personalizingId === lead.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
@@ -421,7 +441,8 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(lead.id)}
-                                                className="p-1.5 hover:bg-red-500/10 text-text-muted hover:text-red-500 transition-all rounded-md"
+                                                disabled={isPending}
+                                                className="p-1.5 hover:bg-red-500/10 text-text-muted hover:text-red-500 transition-all rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                                                 title="Remove"
                                             >
                                                 <Trash className="h-3.5 w-3.5" />
@@ -471,14 +492,16 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                     <div className="flex items-center gap-3">
                         <button
                             onClick={handleBulkExport}
-                            className="flex items-center gap-2 px-4 py-2 bg-panel border border-border-subtle hover:border-white transition-all rounded-lg text-xs font-bold group"
+                            disabled={isPending}
+                            className="flex items-center gap-2 px-4 py-2 bg-panel border border-border-subtle hover:border-white transition-all rounded-lg text-xs font-bold group disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Download className="h-4 w-4 transform group-hover:-translate-y-0.5 transition-transform" />
                             Direct Export
                         </button>
                         <button
                             onClick={handleBulkDelete}
-                            className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all rounded-lg text-xs font-bold"
+                            disabled={isPending}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all rounded-lg text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Trash2 className="h-4 w-4" />
                             Delete Permanent
