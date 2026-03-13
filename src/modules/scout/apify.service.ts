@@ -1,9 +1,39 @@
 import { ApifyClient } from 'apify-client';
 import { ApifyUser } from '@/types';
+import { LeadService } from '../leads/service';
 
 const apifyClient = new ApifyClient({
   token: process.env.APIFY_API_TOKEN,
 });
+
+/**
+ * Scrapes Google Places leads for a given city and category in Morocco.
+ */
+export async function scoutMorocco(city: string, category: string, limit: number = 20) {
+  const input = {
+    "queries": [`${category} in ${city}`],
+    "maxPagesPerQuery": 1,
+    "resultsPerPage": limit,
+    "language": "en",
+    "region": "MA"
+  };
+
+  const actorId = process.env.APIFY_SCOUT_ACTOR_ID || "compass/crawler-google-places";
+  const run = await apifyClient.actor(actorId).call(input);
+  const { items } = await apifyClient.dataset(run.defaultDatasetId).listItems();
+
+  const leads = [];
+  for (const item of items) {
+    try {
+      const lead = await LeadService.upsertScrapedLead(item as any, city, category);
+      leads.push(lead);
+    } catch (err) {
+      console.error("⚠️ Failed to upsert lead:", err);
+    }
+  }
+
+  return leads;
+}
 
 export class ApifyService {
   /**

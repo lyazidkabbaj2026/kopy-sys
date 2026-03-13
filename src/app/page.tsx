@@ -10,18 +10,27 @@ export const dynamic = "force-dynamic";
 export default async function Dashboard(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const searchParams = await props.searchParams;
+  const resolvedParams = await props.searchParams;
+
   // 1. Fetch Apify Account Balance (Encapsulated)
   const { balance, resetDate } = await ApifyService.getApifyAccountBalance();
 
+  // Helper for secure string extraction from potentially array params
+  const getParam = (key: string): string | undefined => {
+    const val = resolvedParams[key];
+    if (Array.isArray(val)) return val[0];
+    return val;
+  };
+
   // 3. Server-Side Lead Fetching (Filtered & Paginated)
-  const page = typeof searchParams.page === 'string' ? parseInt(searchParams.page) : 1;
-  const q = typeof searchParams.q === 'string' ? searchParams.q : undefined;
-  const status = typeof searchParams.status === 'string' ? searchParams.status : undefined;
-  const rating = typeof searchParams.rating === 'string' ? searchParams.rating : undefined;
-  const category = typeof searchParams.category === 'string' ? searchParams.category : undefined;
-  const sortBy = typeof searchParams.sortBy === 'string' ? searchParams.sortBy : 'createdAt';
-  const sortDir = searchParams.sortDir === 'asc' ? 'asc' : 'desc';
+  const rawPage = getParam('page');
+  const page = rawPage ? parseInt(rawPage) : 1;
+  const q = getParam('q');
+  const status = getParam('status');
+  const rating = getParam('rating');
+  const category = getParam('category');
+  const sortBy = getParam('sortBy') || 'createdAt';
+  const sortDir = getParam('sortDir') === 'asc' ? 'asc' : 'desc';
 
   const { data: leads, meta } = await LeadService.getLeads({
     page,

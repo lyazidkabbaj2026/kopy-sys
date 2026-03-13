@@ -130,7 +130,6 @@ export default function LeadsTable({ leads, totalCount, currentPage, totalPages 
             if (result.success) {
                 // Patch state memory leak: remove from selection if it was selected
                 setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
-                router.refresh();
             } else {
                 alert(`Delete error: ${result.error}`);
             }
@@ -144,7 +143,6 @@ export default function LeadsTable({ leads, totalCount, currentPage, totalPages 
             const result = await bulkDeleteLeadsAction(selectedIds);
             if (result.success) {
                 setSelectedIds([]);
-                router.refresh();
             } else {
                 alert(`Bulk delete error: ${result.error}`);
             }
@@ -189,7 +187,7 @@ export default function LeadsTable({ leads, totalCount, currentPage, totalPages 
         startTransition(async () => {
             const result = await auditLeadAction(leadId);
             if (result.success) {
-                router.refresh();
+                // revalidatePath handles the UI sync
             } else {
                 alert(`Audit failed: ${result.error}`);
             }
@@ -218,7 +216,6 @@ export default function LeadsTable({ leads, totalCount, currentPage, totalPages 
 
     const handleSaveAISuccess = (newMessage: string) => {
         setIsModalOpen(false);
-        router.refresh();
     };
 
     const resetFilters = () => {

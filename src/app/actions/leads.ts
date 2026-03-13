@@ -5,10 +5,12 @@ import { analyzeWebsite } from "@/modules/audit/analyzer";
 import { generatePersonalizedMessage } from "@/modules/ghostwriter/personalizer";
 import { AppError } from "@/lib/errors";
 import { Lead } from "@prisma/client";
+import { revalidatePath } from "next/cache";
 
 export async function deleteLeadAction(id: string) {
     try {
         await LeadService.deleteLead(id);
+        revalidatePath("/");
         return { success: true };
     } catch (error: unknown) {
         return { 
@@ -21,6 +23,7 @@ export async function deleteLeadAction(id: string) {
 export async function bulkDeleteLeadsAction(ids: string[]) {
     try {
         await LeadService.bulkDeleteLeads(ids);
+        revalidatePath("/");
         return { success: true };
     } catch (error: unknown) {
         return { 
@@ -45,6 +48,7 @@ export async function auditLeadAction(id: string) {
             auditIssues: result.issues
         });
 
+        revalidatePath("/");
         return { success: true, data: result };
     } catch (error: unknown) {
         return { 
@@ -66,6 +70,7 @@ export async function personalizeLeadAction(id: string) {
             aiMessageDraft: result
         });
 
+        revalidatePath("/");
         return { success: true, data: result };
     } catch (error: unknown) {
         return { 
