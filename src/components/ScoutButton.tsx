@@ -2,31 +2,31 @@
 
 import { DownloadCloud, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { triggerScout } from "@/app/actions/scout";
 
 export default function ScoutButton() {
-    const [loading, setLoading] = useState(false);
+    const [isPending, startTransition] = useTransition();
     const [city, setCity] = useState("Casablanca");
     const [category, setCategory] = useState("Spa");
     const router = useRouter();
 
     const handleScout = async () => {
         if (!city || !category) return;
-        setLoading(true);
-        try {
-            const result = await triggerScout(city, category);
-            if (result.success) {
-                router.refresh();
-            } else {
-                alert(`Scout failed: ${result.error}`);
+        
+        startTransition(async () => {
+            try {
+                const result = await triggerScout(city, category);
+                if (result.success) {
+                    router.refresh();
+                } else {
+                    alert(`Scout failed: ${result.error}`);
+                }
+            } catch (error: unknown) {
+                const message = error instanceof Error ? error.message : "An unknown error occurred";
+                alert(`Scout failed: ${message}`);
             }
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "An unknown error occurred";
-            alert(`Scout failed: ${message}`);
-        } finally {
-            setLoading(false);
-        }
+        });
     };
 
     return (
@@ -38,7 +38,7 @@ export default function ScoutButton() {
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     placeholder="Niche"
-                    disabled={loading}
+                    disabled={isPending}
                     className="w-24 bg-transparent text-xs text-text-main placeholder-text-muted focus:outline-none"
                 />
             </div>
@@ -49,18 +49,18 @@ export default function ScoutButton() {
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     placeholder="City"
-                    disabled={loading}
+                    disabled={isPending}
                     className="w-24 bg-transparent text-xs text-text-main placeholder-text-muted focus:outline-none"
                 />
             </div>
             <button
                 onClick={handleScout}
-                disabled={loading || !city || !category}
+                disabled={isPending || !city || !category}
                 className="flex items-center gap-2 rounded-lg border border-border-subtle bg-panel px-4 py-1.5 text-xs font-medium text-text-main hover:border-neon hover:text-neon transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 <DownloadCloud className="h-4 w-4" />
-                {loading ? "Scouting..." : "Extract Leads"}
+                {isPending ? "Scouting..." : "Extract Leads"}
             </button>
         </div>
     );
-}
+}

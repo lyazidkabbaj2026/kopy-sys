@@ -13,8 +13,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NXSURGE | Elite Lead Intelligence",
-  description: "Advanced lead generation, website auditing, and AI personalization for the Moroccan market.",
+  title: "KOPY | Elite B2B Lead Intelligence",
+  description: "Advanced lead generation, website auditing, and AI personalization for professional B2B scouting.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({

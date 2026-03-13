@@ -15,10 +15,10 @@ const envSchema = z.object({
   GROQ_MODEL: z.string().default("llama3-8b-8192"),
 
   // App Defaults
-  DEFAULT_CITY: z.string().default("Casablanca"),
+  DEFAULT_CITY: z.string().default("Rabat"),
   DEFAULT_CATEGORY: z.string().default("Spa"),
   APP_LANGUAGE: z.string().default("fr"),
-  BRAND_NAME: z.string().default("NXSURGE"),
+  BRAND_NAME: z.string().default("KOPY"),
 });
 
 export const env = envSchema.parse(process.env);

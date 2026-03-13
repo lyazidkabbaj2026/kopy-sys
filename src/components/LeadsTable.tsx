@@ -14,14 +14,14 @@ import { apiClient } from "@/lib/api-client";
 
 export default function LeadsTable({ leads }: { leads: Lead[] }) {
     const router = useRouter();
-    
+
     // 1. CRM State Management
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [ratingFilter, setRatingFilter] = useState<string>("all");
     const [categoryFilter, setCategoryFilter] = useState<string>("all");
     const [sortConfig, setSortConfig] = useState<{ key: keyof Lead, direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
-    
+
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [auditingId, setAuditingId] = useState<string | null>(null);
     const [personalizingId, setPersonalizingId] = useState<string | null>(null);
@@ -138,14 +138,14 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
     const exportToCSV = () => {
         const headers = ["Business Name", "Category", "Rating", "Review Count", "City", "Status", "Website", "Phone", "Scraped Date"];
         const rows = filteredLeads.map(l => [
-            l.businessName, 
-            l.category, 
-            l.rating || "N/A", 
+            l.businessName,
+            l.category,
+            l.rating || "N/A",
             l.reviewsCount || 0,
             l.city,
-            l.status, 
-            l.website, 
-            l.phone, 
+            l.status,
+            l.website,
+            l.phone,
             l.createdAt
         ]);
 
@@ -153,7 +153,7 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.setAttribute("download", `nxsurge_leads_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `kopy_leads_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -224,7 +224,7 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    
+
                     <div className="flex gap-2">
                         <select
                             className="flex-1 bg-background/50 border border-border-subtle rounded-lg px-3 py-2.5 text-xs text-text-muted outline-none focus:border-neon"
@@ -237,7 +237,7 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                             <option value="AUDITED">Audited</option>
                             <option value="MESSAGED">Messaged</option>
                         </select>
-                        
+
                         <select
                             className="flex-1 bg-background/50 border border-border-subtle rounded-lg px-3 py-2.5 text-xs text-text-muted outline-none focus:border-neon"
                             value={ratingFilter}
@@ -277,21 +277,21 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                     <thead>
                         <tr className="bg-panel/20 text-[10px] uppercase text-text-muted font-bold tracking-widest border-b border-border-subtle">
                             <th className="p-4 border-b border-border-subtle w-12 text-center">
-                                <input 
-                                    type="checkbox" 
-                                    className="rounded border-border-subtle bg-background text-neon focus:ring-neon accent-neon h-4 w-4 cursor-pointer" 
+                                <input
+                                    type="checkbox"
+                                    className="rounded border-border-subtle bg-background text-neon focus:ring-neon accent-neon h-4 w-4 cursor-pointer"
                                     checked={filteredLeads.length > 0 && selectedIds.length === filteredLeads.length}
                                     onChange={toggleSelectAll}
                                 />
                             </th>
-                            <th 
-                                className="p-4 border-b border-border-subtle cursor-pointer hover:text-neon transition-colors" 
+                            <th
+                                className="p-4 border-b border-border-subtle cursor-pointer hover:text-neon transition-colors"
                                 onClick={() => handleSort('businessName')}
                             >
                                 <div className="flex items-center gap-2">BUSINESS NAME <ArrowUpDown className="h-3.5 w-3.5" /></div>
                             </th>
                             <th className="p-4 border-b border-border-subtle px-4">REPUTATION</th>
-                            <th 
+                            <th
                                 className="p-4 border-b border-border-subtle px-4 cursor-pointer hover:text-neon transition-colors"
                                 onClick={() => handleSort('reviewsCount')}
                             >
@@ -309,9 +309,9 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                             filteredLeads.map((lead) => (
                                 <tr key={lead.id} className={`group hover:bg-neon/5 transition-all duration-200 border-b border-border-subtle/30 ${selectedIds.includes(lead.id) ? 'bg-neon/10' : ''}`}>
                                     <td className="p-4 border-b border-border-subtle/10 text-center">
-                                        <input 
-                                            type="checkbox" 
-                                            className="rounded border-border-subtle bg-background text-neon focus:ring-neon accent-neon h-4 w-4 cursor-pointer" 
+                                        <input
+                                            type="checkbox"
+                                            className="rounded border-border-subtle bg-background text-neon focus:ring-neon accent-neon h-4 w-4 cursor-pointer"
                                             checked={selectedIds.includes(lead.id)}
                                             onChange={() => toggleSelect(lead.id)}
                                         />
@@ -327,9 +327,9 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                                             <div className="flex items-center gap-1.5">
                                                 <div className="flex items-center">
                                                     {[...Array(5)].map((_, i) => (
-                                                        <Star 
-                                                            key={i} 
-                                                            className={`h-3 w-3 ${i < Math.floor(lead.rating || 0) ? 'text-neon fill-neon' : 'text-text-muted/30'}`} 
+                                                        <Star
+                                                            key={i}
+                                                            className={`h-3 w-3 ${i < Math.floor(lead.rating || 0) ? 'text-neon fill-neon' : 'text-text-muted/30'}`}
                                                         />
                                                     ))}
                                                 </div>
@@ -364,9 +364,9 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                                     </td>
                                     <td className="p-4 border-b border-border-subtle/10">
                                         <div className={`px-2.5 py-1 rounded-full text-[9px] font-black tracking-widest inline-flex items-center gap-1.5 border border-white/5
-                                            ${lead.status === 'MESSAGED' ? 'bg-blue-500/10 text-blue-400' : 
-                                              lead.status === 'AUDITED' ? 'bg-purple-500/10 text-purple-400' :
-                                              lead.status === 'SCRAPED' ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'}`}>
+                                            ${lead.status === 'MESSAGED' ? 'bg-blue-500/10 text-blue-400' :
+                                                lead.status === 'AUDITED' ? 'bg-purple-500/10 text-purple-400' :
+                                                    lead.status === 'SCRAPED' ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'}`}>
                                             <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
                                             {lead.status}
                                         </div>
@@ -398,28 +398,28 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                                     </td>
                                     <td className="p-4 border-b border-border-subtle/10 text-right pr-6">
                                         <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button 
+                                            <button
                                                 onClick={() => handleAudit(lead.id)}
                                                 className="p-1.5 hover:bg-white/5 text-text-muted hover:text-white transition-all rounded-md"
                                                 title="AI Audit Site"
                                             >
                                                 {auditingId === lead.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handlePersonalize(lead.id)}
                                                 className="p-1.5 hover:bg-neon/10 text-text-muted hover:text-neon transition-all rounded-md"
                                                 title="Generate Message"
                                             >
                                                 {personalizingId === lead.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handleCopyInfo(lead)}
                                                 className="p-1.5 hover:bg-white/5 text-text-muted hover:text-white transition-all rounded-md"
                                                 title="Copy Info"
                                             >
                                                 {copySuccess === lead.id ? <Check className="h-3.5 w-3.5 text-neon" /> : <Copy className="h-3.5 w-3.5" />}
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handleDelete(lead.id)}
                                                 className="p-1.5 hover:bg-red-500/10 text-text-muted hover:text-red-500 transition-all rounded-md"
                                                 title="Remove"
@@ -442,7 +442,7 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                                             <h3 className="text-sm font-bold text-white uppercase tracking-widest">No matching leads</h3>
                                             <p className="text-xs text-text-muted font-medium">Your current filters returned zero results.</p>
                                         </div>
-                                        <button 
+                                        <button
                                             onClick={resetFilters}
                                             className="px-6 py-2 bg-panel border border-border-subtle text-xs font-bold text-white hover:border-neon hover:text-neon transition-all rounded-lg"
                                         >
@@ -465,25 +465,25 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                         </div>
                         <span className="text-xs font-bold text-white uppercase tracking-widest">Leads Selected</span>
                     </div>
-                    
+
                     <div className="h-6 w-px bg-white/10" />
-                    
+
                     <div className="flex items-center gap-3">
-                        <button 
+                        <button
                             onClick={handleBulkExport}
                             className="flex items-center gap-2 px-4 py-2 bg-panel border border-border-subtle hover:border-white transition-all rounded-lg text-xs font-bold group"
                         >
                             <Download className="h-4 w-4 transform group-hover:-translate-y-0.5 transition-transform" />
                             Direct Export
                         </button>
-                        <button 
+                        <button
                             onClick={handleBulkDelete}
                             className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all rounded-lg text-xs font-bold"
                         >
                             <Trash2 className="h-4 w-4" />
                             Delete Permanent
                         </button>
-                        <button 
+                        <button
                             onClick={() => setSelectedIds([])}
                             className="p-2 hover:bg-white/5 rounded-lg text-text-muted transition-colors"
                         >

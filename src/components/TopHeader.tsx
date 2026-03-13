@@ -8,7 +8,7 @@ export default function TopHeader() {
                 {/* Brand & Left Navigation */}
                 <div className="flex items-center gap-8">
                     <div className="text-neon font-bold text-xl tracking-tight cursor-pointer">
-                        NXSURGE
+                        KOPY
                     </div>
 
                     {/* Integrated Search Command */}
