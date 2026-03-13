@@ -15,10 +15,18 @@ import {
     deleteLeadAction,
     bulkDeleteLeadsAction,
     auditLeadAction,
-    personalizeLeadAction
+    personalizeLeadAction,
+    exportLeadsAction
 } from "@/app/actions/leads";
 
-export default function LeadsTable({ leads }: { leads: Lead[] }) {
+interface LeadsTableProps {
+    leads: Lead[];
+    totalCount: number;
+    currentPage: number;
+    totalPages: number;
+}
+
+export default function LeadsTable({ leads, totalCount, currentPage, totalPages }: LeadsTableProps) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -67,68 +75,19 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
         return Array.from(unique) as string[];
     }, [leads]);
 
-    // 3. Advanced Filtering & Search Logic
-    const filteredLeads = useMemo(() => {
-        let result = [...leads];
-
-        // Global Search (Name, Category, City)
-        if (searchTerm) {
-            const search = searchTerm.toLowerCase();
-            result = result.filter(l =>
-                l.businessName.toLowerCase().includes(search) ||
-                l.category?.toLowerCase().includes(search) ||
-                l.city?.toLowerCase().includes(search)
-            );
-        }
-
-        // Status Filter
-        if (statusFilter !== "all") {
-            result = result.filter(l => l.status === statusFilter);
-        }
-
-        // Rating Filter
-        if (ratingFilter !== "all") {
-            result = result.filter(l => {
-                if (!l.rating) return false;
-                if (ratingFilter === "low") return l.rating < 3;
-                if (ratingFilter === "mid") return l.rating >= 3 && l.rating < 4;
-                if (ratingFilter === "high") return l.rating >= 4;
-                return true;
-            });
-        }
-
-        // Category/Niche Filter
-        if (categoryFilter !== "all") {
-            result = result.filter(l => l.category === categoryFilter);
-        }
-
-        // Sorting
-        if (sortConfig) {
-            result.sort((a, b) => {
-                const aValue = a[sortConfig.key] ?? "";
-                const bValue = b[sortConfig.key] ?? "";
-                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-                return 0;
-            });
-        }
-
-        return result;
-    }, [leads, searchTerm, statusFilter, ratingFilter, categoryFilter, sortConfig]);
-
-    // 4. Action Handlers
-    const isAllVisibleSelected = filteredLeads.length > 0 && filteredLeads.every(l => selectedIds.includes(l.id));
+    // 3. Selection & Actions (Simplified to use leads prop directly)
+    const isAllVisibleSelected = leads.length > 0 && leads.every(l => selectedIds.includes(l.id));
 
     const toggleSelectAll = () => {
         if (isAllVisibleSelected) {
-            // Deselect only the currently visible leads, keep hidden selections intact
-            setSelectedIds(prev => prev.filter(id => !filteredLeads.find(l => l.id === id)));
+            const visibleIds = leads.map(l => l.id);
+            setSelectedIds(prev => prev.filter(id => !visibleIds.includes(id)));
         } else {
-            // Select all currently visible leads, merging with existing selections
-            const visibleIds = filteredLeads.map(l => l.id);
-            setSelectedIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+            const newIds = leads.map(l => l.id).filter(id => !selectedIds.includes(id));
+            setSelectedIds(prev => [...prev, ...newIds]);
         }
     };
+
 
     const toggleSelect = (id: string) => {
         setSelectedIds(prev =>
@@ -137,11 +96,15 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
     };
 
     const handleSort = (key: keyof Lead) => {
-        let direction: 'asc' | 'desc' = 'asc';
-        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-            direction = 'desc';
+        const currentDir = searchParams.get("sortDir") === "asc" ? "asc" : "desc";
+        const currentKey = searchParams.get("sortBy") || "createdAt";
+        
+        let direction: 'asc' | 'desc' = 'desc';
+        if (currentKey === key && currentDir === 'desc') {
+            direction = 'asc';
         }
-        setSortConfig({ key, direction });
+        
+        updateQuery({ sortBy: key, sortDir: direction });
     };
 
     const handleCopyInfo = (lead: Lead) => {
@@ -180,32 +143,43 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
         });
     };
 
-    const generateCSV = (leadsToExport: Lead[], filename: string) => {
-        const headers = ["Business Name", "Category", "Rating", "Reviews", "City", "Status", "Website", "Phone", "Scraped Date"];
-        const rows = leadsToExport.map(l => [
-            l.businessName,
-            l.category || "N/A",
-            l.rating || "N/A",
-            l.reviewsCount || 0,
-            l.city || "N/A",
-            l.status,
-            l.website || "N/A",
-            l.phone || "N/A",
-            new Date(l.createdAt).toISOString().split('T')[0]
-        ]);
-
-        const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    // Server-Side CSV Export Logic
+    const handleDownloadCSV = (csvContent: string, filename: string) => {
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.setAttribute("download", `${filename}_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
-    const handleExportAll = () => generateCSV(filteredLeads, "master_leads");
-    const handleBulkExport = () => generateCSV(leads.filter(l => selectedIds.includes(l.id)), "selected_leads");
+    const handleExportAll = async () => {
+        startTransition(async () => {
+            const filters = {
+                q: searchTerm,
+                status: statusFilter,
+                rating: ratingFilter,
+                category: categoryFilter
+            };
+            const result = await exportLeadsAction(filters);
+            if (result.success && result.data) {
+                handleDownloadCSV(result.data, `leads-master-${new Date().toISOString().split('T')[0]}.csv`);
+            }
+        });
+    };
+
+    const handleBulkExport = async () => {
+        if (selectedIds.length === 0) return;
+        startTransition(async () => {
+            const result = await exportLeadsAction(undefined, selectedIds);
+            if (result.success && result.data) {
+                handleDownloadCSV(result.data, `leads-export-${selectedIds.length}.csv`);
+            }
+        });
+    };
 
     const handleAudit = (leadId: string) => {
         setAuditingId(leadId);
@@ -364,8 +338,8 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                         </tr>
                     </thead>
                     <tbody className="text-xs">
-                        {filteredLeads.length > 0 ? (
-                            filteredLeads.map((lead) => (
+                        {leads.length > 0 ? (
+                            leads.map((lead) => (
                                 <tr key={lead.id} className={`group hover:bg-neon/5 transition-all duration-200 border-b border-border-subtle/30 ${selectedIds.includes(lead.id) ? 'bg-neon/10' : ''}`}>
                                     <td className="p-4 border-b border-border-subtle/10 text-center">
                                         <input
@@ -556,6 +530,51 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                     </div>
                 </div>
             )}
+
+            {/* 6. High-Performance Server-Side Pagination */}
+            <div className="p-4 border-t border-border-subtle/10 flex items-center justify-between">
+                <p className="text-[10px] text-text-muted">
+                    Showing <span className="text-white font-medium">{leads.length}</span> of <span className="text-white font-medium">{totalCount}</span> results
+                </p>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => updateQuery({ page: (currentPage - 1).toString() })}
+                        disabled={currentPage <= 1 || isPending}
+                        className="px-3 py-1.5 rounded-md border border-border-subtle text-[10px] text-text-muted hover:text-white hover:border-neon transition-all disabled:opacity-30 disabled:hover:border-border-subtle"
+                    >
+                        Previous
+                    </button>
+                    <div className="flex items-center gap-1.5 px-2">
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            // Simple pagination window logic
+                            let pageNum = currentPage <= 3 ? i + 1 : currentPage - 2 + i;
+                            if (pageNum > totalPages) pageNum = totalPages - (4 - i);
+                            if (pageNum <= 0) return null;
+                            
+                            return (
+                                <button
+                                    key={pageNum}
+                                    onClick={() => updateQuery({ page: pageNum.toString() })}
+                                    className={`w-7 h-7 rounded-md flex items-center justify-center text-[10px] transition-all ${
+                                        currentPage === pageNum 
+                                        ? 'bg-neon/10 border border-neon text-neon' 
+                                        : 'text-text-muted hover:text-white hover:border-border-subtle border border-transparent'
+                                    }`}
+                                >
+                                    {pageNum}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <button
+                        onClick={() => updateQuery({ page: (currentPage + 1).toString() })}
+                        disabled={currentPage >= totalPages || isPending}
+                        className="px-3 py-1.5 rounded-md border border-border-subtle text-[10px] text-text-muted hover:text-white hover:border-neon transition-all disabled:opacity-30 disabled:hover:border-border-subtle"
+                    >
+                        Next
+                    </button>
+                </div>
+            </div>
 
             {selectedLead && (
                 <AIPersonalizerModal

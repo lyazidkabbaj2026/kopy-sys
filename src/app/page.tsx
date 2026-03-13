@@ -1,10 +1,9 @@
-import { prisma } from "@/lib/prisma";
+import { LeadService } from "@/modules/leads/service";
 import { ApifyClient } from 'apify-client';
 import { ApifyUser } from "@/types";
 import TopHeader from "@/components/TopHeader";
 import MetricsGrid from "@/components/MetricsGrid";
 import LeadsTable from "@/components/LeadsTable";
-import { Lead } from "@prisma/client";
 import ScoutButton from "@/components/ScoutButton";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +12,11 @@ const apifyClient = new ApifyClient({
   token: process.env.APIFY_API_TOKEN,
 });
 
-export default async function Dashboard() {
+export default async function Dashboard({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
   const token = process.env.APIFY_API_TOKEN;
 
   // 1. Fetch User Data
@@ -21,45 +24,47 @@ export default async function Dashboard() {
   const apifyUser = userResponse as ApifyUser;
   const usage = apifyUser?.currentBillingPeriodUsage;
 
-  // 2. Fallback to Monthly Usage API if CBPU is missing (common on Free plans)
+  // 2. Apify Balance Logic
   let balance = 0;
   let resetDate = "N/A";
 
   if (usage?.remainingSubscriptionCredits !== undefined) {
     balance = usage.remainingSubscriptionCredits;
-    resetDate = new Date(usage.cycleEndsAt).toLocaleDateString();
+    resetDate = new Date(usage.cycleEndsAt).toISOString().split('T')[0];
   } else {
-    // Attempt to fetch from usage API
     try {
       const usageRes = await fetch(`https://api.apify.com/v2/users/me/usage/monthly?token=${token}`);
       const usageData = await usageRes.json();
       const currentMonth = usageData?.data?.[0];
       
       if (currentMonth) {
-        // If it's a Free plan, they might be tracking "Total Usage" as their balance
-        // Or we calculate remaining: 5.00 (Free limit) - used
-        const used = currentMonth.totalUsageCreditsUsd || 0;
-        
-        // Logic: If user says they have $0.32 balance, and they used $0.32, 
-        // they might be looking at "Used". To be safe and high-end, we show Used if balance is missing.
-        balance = used; 
-        resetDate = new Date(currentMonth.endAt).toLocaleDateString();
-        
-        console.log(`ℹ️ Using monthly usage as fallback: $${balance}`);
+        balance = currentMonth.totalUsageCreditsUsd || 0;
+        resetDate = new Date(currentMonth.endAt).toISOString().split('T')[0];
       }
     } catch (err) {
       console.error("⚠️ Failed to fetch Apify usage fallback:", err);
     }
   }
 
-  let leads: Lead[] = [];
-  try {
-    leads = await prisma.lead.findMany({ 
-      orderBy: { createdAt: "desc" } 
-    });
-  } catch (err) {
-    console.error("❌ Prisma fetch error:", err);
-  }
+  // 3. Server-Side Lead Fetching (Filtered & Paginated)
+  const page = typeof searchParams.page === 'string' ? parseInt(searchParams.page) : 1;
+  const q = typeof searchParams.q === 'string' ? searchParams.q : undefined;
+  const status = typeof searchParams.status === 'string' ? searchParams.status : undefined;
+  const rating = typeof searchParams.rating === 'string' ? searchParams.rating : undefined;
+  const category = typeof searchParams.category === 'string' ? searchParams.category : undefined;
+  const sortBy = typeof searchParams.sortBy === 'string' ? searchParams.sortBy : 'createdAt';
+  const sortDir = searchParams.sortDir === 'asc' ? 'asc' : 'desc';
+
+  const { data: leads, meta } = await LeadService.getLeads({
+    page,
+    q,
+    status,
+    rating,
+    category,
+    sortBy,
+    sortDir,
+    limit: 25, // Optimized page size
+  });
 
   return (
     <div className="flex h-screen w-full bg-background text-text-main overflow-hidden font-sans">
@@ -75,9 +80,14 @@ export default async function Dashboard() {
             <ScoutButton />
           </div>
 
-          <MetricsGrid leadsCount={leads.length} apifyBalance={balance} resetDate={resetDate} />
+          <MetricsGrid leadsCount={meta.total} apifyBalance={balance} resetDate={resetDate} />
 
-          <LeadsTable leads={leads} />
+          <LeadsTable 
+            leads={leads} 
+            totalCount={meta.total} 
+            currentPage={meta.page} 
+            totalPages={meta.totalPages} 
+          />
         </div>
       </main>
     </div>

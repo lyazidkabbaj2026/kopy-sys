@@ -73,3 +73,36 @@ export async function personalizeLeadAction(id: string) {
         };
     }
 }
+
+export async function exportLeadsAction(filters?: any, selectedIds?: string[]) {
+    try {
+        let leads: any[];
+        if (selectedIds && selectedIds.length > 0) {
+            leads = await LeadService.getLeadsByIds(selectedIds);
+        } else {
+            const result = await LeadService.getLeads(filters || {});
+            leads = result.data;
+        }
+
+        const headers = ["Business Name", "Category", "Rating", "Reviews", "City", "Status", "Website", "Phone", "Scraped Date"];
+        const rows = leads.map((l: any) => [
+            `"${l.businessName.replace(/"/g, '""')}"`,
+            `"${(l.category || "N/A").replace(/"/g, '""')}"`,
+            l.rating || "N/A",
+            l.reviewsCount || 0,
+            `"${(l.city || "N/A").replace(/"/g, '""')}"`,
+            l.status,
+            `"${(l.website || "N/A").replace(/"/g, '""')}"`,
+            `"${(l.phone || "N/A").replace(/"/g, '""')}"`,
+            new Date(l.createdAt).toISOString().split('T')[0]
+        ]);
+
+        const csvContent = [headers.join(","), ...rows.map((r: any) => r.join(","))].join("\n");
+        return { success: true, data: csvContent };
+    } catch (error: unknown) {
+        return { 
+            success: false, 
+            error: error instanceof Error ? error.message : "Export failed" 
+        };
+    }
+}
