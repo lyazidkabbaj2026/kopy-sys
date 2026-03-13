@@ -1,4 +1,3 @@
-// src/components/StatCard.tsx
 "use client";
 
 import { LucideIcon, RefreshCw, Database, Zap, Wallet, Search } from "lucide-react";
@@ -52,9 +51,9 @@ export default function StatCard({
                     {title}
                 </div>
                 {actionIcon === "refresh" && (
-                    <RefreshCw 
-                        onClick={handleRefresh} 
-                        className={`h-3.5 w-3.5 text-text-muted cursor-pointer hover:text-white transition-all ${isPending ? "animate-spin text-neon" : ""}`} 
+                    <RefreshCw
+                        onClick={handleRefresh}
+                        className={`h-3.5 w-3.5 text-text-muted cursor-pointer hover:text-white transition-all ${isPending ? "animate-spin text-neon" : ""}`}
                     />
                 )}
             </div>

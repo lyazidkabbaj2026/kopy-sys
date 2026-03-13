@@ -93,11 +93,16 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
     }, [leads, searchTerm, statusFilter, ratingFilter, categoryFilter, sortConfig]);
 
     // 4. Action Handlers
+    const isAllVisibleSelected = filteredLeads.length > 0 && filteredLeads.every(l => selectedIds.includes(l.id));
+
     const toggleSelectAll = () => {
-        if (selectedIds.length === filteredLeads.length) {
-            setSelectedIds([]);
+        if (isAllVisibleSelected) {
+            // Deselect only the currently visible leads, keep hidden selections intact
+            setSelectedIds(prev => prev.filter(id => !filteredLeads.find(l => l.id === id)));
         } else {
-            setSelectedIds(filteredLeads.map(l => l.id));
+            // Select all currently visible leads, merging with existing selections
+            const visibleIds = filteredLeads.map(l => l.id);
+            setSelectedIds(prev => Array.from(new Set([...prev, ...visibleIds])));
         }
     };
 
@@ -293,7 +298,7 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                                 <input
                                     type="checkbox"
                                     className="rounded border-border-subtle bg-background text-neon focus:ring-neon accent-neon h-4 w-4 cursor-pointer"
-                                    checked={filteredLeads.length > 0 && selectedIds.length === filteredLeads.length}
+                                    checked={isAllVisibleSelected}
                                     onChange={toggleSelectAll}
                                 />
                             </th>

@@ -1,4 +1,3 @@
-// src/components/MetricsGrid.tsx
 import StatCard from "./StatCard";
 
 interface MetricsGridProps {
