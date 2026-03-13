@@ -421,7 +421,7 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                                         <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
                                                 onClick={() => handleAudit(lead.id)}
-                                                disabled={isPending}
+                                                disabled={auditingId === lead.id}
                                                 className="p-1.5 hover:bg-white/5 text-text-muted hover:text-white transition-all rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                                                 title="AI Audit Site"
                                             >
@@ -429,7 +429,7 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                                             </button>
                                             <button
                                                 onClick={() => handlePersonalize(lead.id)}
-                                                disabled={isPending}
+                                                disabled={personalizingId === lead.id}
                                                 className="p-1.5 hover:bg-neon/10 text-text-muted hover:text-neon transition-all rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                                                 title="Generate Message"
                                             >
@@ -444,11 +444,11 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(lead.id)}
-                                                disabled={isPending}
+                                                disabled={deletingId === lead.id}
                                                 className="p-1.5 hover:bg-red-500/10 text-text-muted hover:text-red-500 transition-all rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                                                 title="Remove"
                                             >
-                                                <Trash className="h-3.5 w-3.5" />
+                                                {deletingId === lead.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash className="h-3.5 w-3.5" />}
                                             </button>
                                         </div>
                                     </td>
