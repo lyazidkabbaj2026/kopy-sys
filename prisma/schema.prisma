@@ -24,6 +24,10 @@ model Lead {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   lastScrapedAt   DateTime?
+
+  @@index([status])
+  @@index([city, category])
+  @@index([createdAt])
 }
 
 enum LeadStatus {

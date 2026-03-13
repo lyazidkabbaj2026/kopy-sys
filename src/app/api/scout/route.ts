@@ -7,6 +7,7 @@ import { withErrorHandler } from '@/lib/api-wrapper';
 const ScoutRequestSchema = z.object({
     city: z.string().optional(),
     category: z.string().optional(),
+    limit: z.number().min(1).max(500).optional(),
 });
 
 export const POST = withErrorHandler(async (request: Request) => {
@@ -15,8 +16,9 @@ export const POST = withErrorHandler(async (request: Request) => {
     
     const city = validated.city || env.DEFAULT_CITY;
     const category = validated.category || env.DEFAULT_CATEGORY;
+    const limit = validated.limit || 10;
 
-    const leads = await scoutMorocco(city, category);
+    const leads = await scoutMorocco(city, category, limit);
 
     return NextResponse.json({
         success: true,

@@ -19,12 +19,16 @@ const ApifyItemSchema = z.object({
     reviewsCount: z.number().optional().nullable(),
 });
 
-export const scoutMorocco = async (city: string = env.DEFAULT_CITY, category: string = env.DEFAULT_CATEGORY) => {
+export const scoutMorocco = async (
+    city: string = env.DEFAULT_CITY, 
+    category: string = env.DEFAULT_CATEGORY,
+    limit: number = 10
+) => {
     try {
         const run = await client.actor(env.APIFY_SCOUT_ACTOR_ID).call({
             "searchStringsArray": [`${category}`],
             "locationQuery": `${city}, Morocco`,
-            "maxCrawledPlacesPerSearch": 10,
+            "maxCrawledPlacesPerSearch": limit,
             "language": env.APP_LANGUAGE,
             "maxImages": 0,
             "maxReviews": 0,

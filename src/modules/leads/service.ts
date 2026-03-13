@@ -58,10 +58,27 @@ export class LeadService {
     }
   }
 
-  static async getAllLeads() {
-    return prisma.lead.findMany({
-      orderBy: { createdAt: 'desc' }
-    });
+  static async getLeads(page: number = 1, limit: number = 50) {
+    const skip = (page - 1) * limit;
+
+    const [leads, total] = await Promise.all([
+      prisma.lead.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.lead.count()
+    ]);
+
+    return {
+      data: leads,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
   static async delete(id: string): Promise<Lead> {
