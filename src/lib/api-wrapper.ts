@@ -9,6 +9,9 @@ export function withErrorHandler(handler: RouteHandler) {
     try {
       return await handler(request, context);
     } catch (error: unknown) {
+      if (error instanceof AppError && error.details) {
+          console.error("❌ AppError Details:", error.details);
+      }
       console.error("❌ API Error:", error);
 
       if (error instanceof ZodError) {

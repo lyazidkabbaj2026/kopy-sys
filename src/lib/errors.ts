@@ -25,7 +25,6 @@ export class AppError extends Error {
       success: false,
       error: this.message,
       code: this.code,
-      details: this.details,
     };
   }
 }
