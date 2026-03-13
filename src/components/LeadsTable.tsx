@@ -11,11 +11,11 @@ import { Lead } from "@prisma/client";
 import AIPersonalizerModal from "./AIPersonalizerModal";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { 
-    deleteLeadAction, 
-    bulkDeleteLeadsAction, 
-    auditLeadAction, 
-    personalizeLeadAction 
+import {
+    deleteLeadAction,
+    bulkDeleteLeadsAction,
+    auditLeadAction,
+    personalizeLeadAction
 } from "@/app/actions/leads";
 
 export default function LeadsTable({ leads }: { leads: Lead[] }) {
@@ -32,6 +32,7 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [auditingId, setAuditingId] = useState<string | null>(null);
     const [personalizingId, setPersonalizingId] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
     const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [copySuccess, setCopySuccess] = useState<string | null>(null);
@@ -123,6 +124,7 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
 
     const handleDelete = (id: string) => {
         if (!confirm("Are you sure you want to delete this lead?")) return;
+        setDeletingId(id);
         startTransition(async () => {
             const result = await deleteLeadAction(id);
             if (result.success) {
@@ -130,6 +132,7 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
             } else {
                 alert(`Delete error: ${result.error}`);
             }
+            setDeletingId(null);
         });
     };
 
