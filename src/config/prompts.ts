@@ -2,10 +2,10 @@ import { env } from "./env";
 
 interface PersonalizationPromptArgs {
     businessName: string;
-    category?: string;
-    city?: string;
-    auditScore?: number;
-    auditIssues?: string[];
+    category?: string | null;
+    city?: string | null;
+    auditScore?: number | null;
+    auditIssues?: string[] | null;
 }
 
 export const getPersonalizationPrompt = ({

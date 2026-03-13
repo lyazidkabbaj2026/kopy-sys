@@ -7,10 +7,10 @@ import { getPersonalizationPrompt } from "@/config/prompts";
 export const generatePersonalizedMessage = async (context: LeadContext) => {
     const prompt = getPersonalizationPrompt({
         businessName: context.businessName,
-        category: context.category ?? undefined,
-        city: context.city ?? undefined,
-        auditScore: context.auditScore ?? undefined,
-        auditIssues: context.auditIssues ?? undefined
+        category: context.category,
+        city: context.city,
+        auditScore: context.auditScore,
+        auditIssues: context.auditIssues
     });
 
     try {
@@ -24,11 +24,13 @@ export const generatePersonalizedMessage = async (context: LeadContext) => {
         const content = completion.choices[0]?.message?.content;
         
         if (!content) {
-            throw new Error("Empty response from AI");
+            throw new AppError("Empty response from AI", "AI_GENERATION_FAILED", 500);
         }
 
         return content;
     } catch (error: unknown) {
+        if (error instanceof AppError) throw error;
+
         const message = error instanceof Error ? error.message : "Unknown error";
         console.error("Groq Personalization Error:", message);
         throw new AppError(
