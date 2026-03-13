@@ -12,21 +12,26 @@ export class LeadService {
   }
 
   static async findByWebsite(website: string): Promise<Lead | null> {
-    return prisma.lead.findUnique({ where: { website } });
+    return prisma.lead.findFirst({ where: { website } });
   }
 
   static async upsertScrapedLead(item: ScrapedLead, city: string, category: string): Promise<Lead> {
-    const uniqueKey = item.website || item.placeId;
+    if (!item.placeId) {
+      throw new AppError("Critical Data Error: placeId is required for lead upsert", "BAD_REQUEST", 400);
+    }
     
     return prisma.lead.upsert({
-      where: { website: uniqueKey },
+      where: { placeId: item.placeId },
       update: {
         lastScrapedAt: new Date(),
         rating: item.rating ?? undefined,
         reviewsCount: item.reviewsCount ?? undefined,
+        website: item.website ?? undefined,
+        phone: item.phone ?? undefined,
       },
       create: {
         businessName: item.title,
+        placeId: item.placeId,
         website: item.website || null,
         phone: item.phone || null,
         rating: item.rating || null,

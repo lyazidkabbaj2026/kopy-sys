@@ -9,7 +9,8 @@ datasource db {
 model Lead {
   id              String   @id @default(cuid())
   businessName    String
-  website         String?  @unique
+  placeId         String?  @unique
+  website         String?
   phone           String?
   city            String?
   category        String?

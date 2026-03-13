@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { LeadService } from '@/services/leadService';
+import { LeadService } from '@/modules/leads/service';
 import { analyzeWebsite } from '@/modules/audit/analyzer';
 import { AppError } from '@/lib/errors';
 

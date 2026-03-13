@@ -14,11 +14,11 @@ export interface ApifyUser {
 
 export interface ScrapedLead {
   title: string;
-  website?: string;
-  phone?: string;
+  website?: string | null;
+  phone?: string | null;
   placeId: string;
-  rating?: number;
-  reviewsCount?: number;
+  rating?: number | null;
+  reviewsCount?: number | null;
 }
 
 export interface ApiResponse<T = unknown> {

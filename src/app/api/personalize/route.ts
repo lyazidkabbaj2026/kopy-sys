@@ -1,15 +1,17 @@
 import { NextResponse } from 'next/server';
-import { LeadService } from '@/services/leadService';
+import { LeadService } from '@/modules/leads/service';
 import { generatePersonalizedMessage } from '@/modules/ghostwriter/personalizer';
 import { AppError } from '@/lib/errors';
+import { z, ZodError } from 'zod';
+
+const PersonalizeRequestSchema = z.object({
+    leadId: z.string().min(1, "leadId is required"),
+});
 
 export async function POST(request: Request) {
     try {
-        const { leadId } = await request.json();
-
-        if (!leadId) {
-            throw new AppError("Missing leadId", "BAD_REQUEST", 400);
-        }
+        const body = await request.json();
+        const { leadId } = PersonalizeRequestSchema.parse(body);
 
         const lead = await LeadService.findById(leadId);
 
@@ -31,6 +33,13 @@ export async function POST(request: Request) {
             message: "AI message generated successfully"
         });
     } catch (error: unknown) {
+        if (error instanceof ZodError) {
+            return NextResponse.json({ 
+                success: false, 
+                error: "Validation failed", 
+                details: error.format() 
+            }, { status: 400 });
+        }
         if (error instanceof AppError) {
             return NextResponse.json(error.toJSON(), { status: error.statusCode });
         }
@@ -38,4 +47,5 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }
+
 
