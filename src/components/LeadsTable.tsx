@@ -128,6 +128,8 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
         startTransition(async () => {
             const result = await deleteLeadAction(id);
             if (result.success) {
+                // Patch state memory leak: remove from selection if it was selected
+                setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
                 router.refresh();
             } else {
                 alert(`Delete error: ${result.error}`);
@@ -149,42 +151,32 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
         });
     };
 
-    const exportToCSV = () => {
-        const headers = ["Business Name", "Category", "Rating", "Review Count", "City", "Status", "Website", "Phone", "Scraped Date"];
-        const rows = filteredLeads.map(l => [
+    const generateCSV = (leadsToExport: Lead[], filename: string) => {
+        const headers = ["Business Name", "Category", "Rating", "Reviews", "City", "Status", "Website", "Phone", "Scraped Date"];
+        const rows = leadsToExport.map(l => [
             l.businessName,
-            l.category,
+            l.category || "N/A",
             l.rating || "N/A",
             l.reviewsCount || 0,
-            l.city,
+            l.city || "N/A",
             l.status,
-            l.website,
-            l.phone,
-            l.createdAt
+            l.website || "N/A",
+            l.phone || "N/A",
+            new Date(l.createdAt).toLocaleDateString()
         ]);
 
         const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.setAttribute("download", `kopy_leads_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `${filename}_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
-    const handleBulkExport = () => {
-        const selected = leads.filter(l => selectedIds.includes(l.id));
-        const headers = ["Business Name", "Category", "Rating", "Reviews", "City", "Website", "Phone"];
-        const rows = selected.map(l => [l.businessName, l.category, l.rating, l.reviewsCount, l.city, l.website, l.phone]);
-        const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `exported_leads_${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-    };
+    const handleExportAll = () => generateCSV(filteredLeads, "master_leads");
+    const handleBulkExport = () => generateCSV(leads.filter(l => selectedIds.includes(l.id)), "selected_leads");
 
     const handleAudit = (leadId: string) => {
         setAuditingId(leadId);
@@ -283,7 +275,7 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                     </select>
 
                     <button
-                        onClick={exportToCSV}
+                        onClick={handleExportAll}
                         className="flex items-center justify-center gap-2 bg-panel border border-border-subtle hover:border-neon hover:text-neon text-text-main px-4 py-2 rounded-lg text-xs font-semibold transition-all group"
                     >
                         <FileSpreadsheet className="h-4 w-4 transform group-hover:scale-110 transition-transform" />
