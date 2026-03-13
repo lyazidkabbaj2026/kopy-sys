@@ -4,6 +4,7 @@ import { ApifyUser } from "@/types";
 import TopHeader from "@/components/TopHeader";
 import MetricsGrid from "@/components/MetricsGrid";
 import LeadsTable from "@/components/LeadsTable";
+import { Lead } from "@prisma/client";
 import ScoutButton from "@/components/ScoutButton";
 
 export const dynamic = "force-dynamic";
@@ -51,7 +52,7 @@ export default async function Dashboard() {
     }
   }
 
-  let leads: any[] = []; // Explicitly typed as any[] for now to avoid lint error while debugging, will refine later
+  let leads: Lead[] = [];
   try {
     leads = await prisma.lead.findMany({ 
       orderBy: { createdAt: "desc" } 

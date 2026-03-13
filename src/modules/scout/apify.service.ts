@@ -1,7 +1,7 @@
 import { ApifyClient } from 'apify-client';
 import { env } from '@/config/env';
 import { LeadService } from '../leads/service';
-import { ScrapedLead } from '@/types';
+import { Lead, ScrapedLead } from '@/types';
 import { AppError } from '@/lib/errors';
 
 import { z } from 'zod';
@@ -38,9 +38,11 @@ export const scoutMorocco = async (city: string = env.DEFAULT_CITY, category: st
                 const result = ApifyItemSchema.safeParse(item);
                 return result.success ? result.data : null;
             })
-            .filter((item): item is z.infer<typeof ApifyItemSchema> => item !== null);
+            .filter((item): item is z.infer<typeof ApifyItemSchema> => 
+                item !== null && (!!item.website || !!item.phone)
+            );
 
-        const savedLeads: any[] = [];
+        const savedLeads: Lead[] = [];
         for (const lead of validLeads) {
             const saved = await LeadService.upsertScrapedLead(lead, city, category);
             savedLeads.push(saved);
