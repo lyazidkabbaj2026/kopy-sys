@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import {
     Download, Trash2, Globe, Phone,
     Search, Filter, ArrowUpDown, FileSpreadsheet,
@@ -77,11 +77,8 @@ export default function LeadsTable({ leads, totalCount, currentPage, totalPages 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [copySuccess, setCopySuccess] = useState<string | null>(null);
 
-    // 2. Dynamic Data Extraction
-    const categories = useMemo(() => {
-        const unique = new Set(leads.map(l => l.category).filter(Boolean));
-        return Array.from(unique) as string[];
-    }, [leads]);
+    // 2. Dynamic Data Extraction (Derived from current leads)
+    const categories = Array.from(new Set(leads.map(l => l.category).filter(Boolean))) as string[];
 
     // 3. Selection & Actions (Simplified to use leads prop directly)
     const isAllVisibleSelected = leads.length > 0 && leads.every(l => selectedIds.includes(l.id));
@@ -270,7 +267,7 @@ export default function LeadsTable({ leads, totalCount, currentPage, totalPages 
                         onChange={(e) => updateQuery({ category: e.target.value })}
                     >
                         <option value="all">All Niches</option>
-                        {categories.map(cat => (
+                        {categories.map((cat: string) => (
                             <option key={cat} value={cat}>{cat}</option>
                         ))}
                     </select>
