@@ -13,6 +13,7 @@ export async function deleteLeadAction(id: string) {
         revalidatePath("/");
         return { success: true };
     } catch (error: unknown) {
+        console.error("[Action Error] deleteLeadAction:", error);
         return { 
             success: false, 
             error: error instanceof Error ? error.message : "Delete failed" 
@@ -26,6 +27,7 @@ export async function bulkDeleteLeadsAction(ids: string[]) {
         revalidatePath("/");
         return { success: true };
     } catch (error: unknown) {
+        console.error("[Action Error] bulkDeleteLeadsAction:", error);
         return { 
             success: false, 
             error: error instanceof Error ? error.message : "Bulk delete failed" 
@@ -51,6 +53,7 @@ export async function auditLeadAction(id: string) {
         revalidatePath("/");
         return { success: true, data: result };
     } catch (error: unknown) {
+        console.error("[Action Error] auditLeadAction:", error);
         return { 
             success: false, 
             error: error instanceof Error ? error.message : "Audit failed" 
@@ -73,6 +76,7 @@ export async function personalizeLeadAction(id: string) {
         revalidatePath("/");
         return { success: true, data: result };
     } catch (error: unknown) {
+        console.error("[Action Error] personalizeLeadAction:", error);
         return { 
             success: false, 
             error: error instanceof Error ? error.message : "Personalization failed" 
@@ -109,6 +113,7 @@ export async function exportLeadsAction(
         const csvContent = [headers.join(","), ...rows.map((r: (string | number)[]) => r.join(","))].join("\n");
         return { success: true, data: csvContent };
     } catch (error: unknown) {
+        console.error("[Action Error] exportLeadsAction:", error);
         return { 
             success: false, 
             error: error instanceof Error ? error.message : "Export failed" 

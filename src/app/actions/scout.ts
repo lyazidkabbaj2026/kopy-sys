@@ -9,6 +9,7 @@ export async function triggerScout(city: string, category: string) {
         revalidatePath("/");
         return { success: true, count: leads.length };
     } catch (error: unknown) {
+        console.error("[Action Error] triggerScout:", error);
         const message = error instanceof Error ? error.message : "An unknown error occurred during scouting";
         return { 
             success: false, 
